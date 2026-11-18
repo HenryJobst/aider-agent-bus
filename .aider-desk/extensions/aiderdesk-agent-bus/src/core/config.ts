@@ -30,6 +30,8 @@ export interface AgentBusConfig {
   orchestration: {
     masterEnabled: boolean;
     peerToPeerEnabled: boolean;
+    /** false = coordinate by messages only, no task board rules in the prompts */
+    trackTasks: boolean;
     maxWorkers: number;
     requireReview: boolean;
     pollIntervalMs: number;
@@ -70,6 +72,7 @@ export function defaultConfig(projectDir: string): AgentBusConfig {
     orchestration: {
       masterEnabled: true,
       peerToPeerEnabled: true,
+      trackTasks: true,
       maxWorkers: 5,
       requireReview: true,
       pollIntervalMs: 20_000,
@@ -115,6 +118,9 @@ function normalize(config: AgentBusConfig): AgentBusConfig {
   }
   if (config.isolation.mergeStrategy !== 'manual' && config.isolation.mergeStrategy !== 'auto') {
     config.isolation.mergeStrategy = 'manual';
+  }
+  if (typeof config.orchestration.trackTasks !== 'boolean') {
+    config.orchestration.trackTasks = true;
   }
   config.orchestration.maxWorkers = clampInt(config.orchestration.maxWorkers, 1, 10, 5);
   config.orchestration.pollIntervalMs = clampInt(config.orchestration.pollIntervalMs, 5_000, 600_000, 20_000);

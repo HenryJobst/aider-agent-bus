@@ -126,6 +126,7 @@ running task is never woken.
 | `isolation.mode` | `worktree` | `worktree`, `shared`, or `hybrid` (workers as worktree) |
 | `orchestration.maxWorkers` | `5` | cap for spawned **and** adopted workers |
 | `orchestration.peerToPeerEnabled` | `true` | allow direct worker-to-worker messages |
+| `orchestration.trackTasks` | `true` | `false` = coordinate by messages only, no board rules |
 | `orchestration.pollIntervalMs` / `wakeCooldownMs` / `maxWakesPerTask` | `20000` / `15000` / `20` | wake-up pacing and budget |
 | `profiles.provider` / `.model` | learned | fallback only; the real model is learned from the first agent run |
 

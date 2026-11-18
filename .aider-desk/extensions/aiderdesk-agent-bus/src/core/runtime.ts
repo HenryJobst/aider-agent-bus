@@ -132,6 +132,7 @@ export class ProjectRuntime {
       capabilities: record.capabilities,
       masterName: this.state.master?.agentName,
       peerToPeer: this.config.orchestration.peerToPeerEnabled,
+      trackTasks: this.config.orchestration.trackTasks,
       // Reality, not intention: an adopted task may still work in the shared
       // directory even when the team default is worktree.
       isolationMode: record.worktree ? this.config.isolation.mode : 'shared',
@@ -152,6 +153,7 @@ export class ProjectRuntime {
       role: 'master',
       capabilities: ['orchestration', 'review', 'planning'],
       peerToPeer: this.config.orchestration.peerToPeerEnabled,
+      trackTasks: this.config.orchestration.trackTasks,
       isolationMode: 'local',
     };
   }

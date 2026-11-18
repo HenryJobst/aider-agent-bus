@@ -14,6 +14,8 @@ export interface IdentityContext {
   capabilities: string[];
   masterName?: string;
   peerToPeer: boolean;
+  /** false = message-only coordination, no board rules */
+  trackTasks?: boolean;
   isolationMode: string;
   worktreePath?: string;
 }
@@ -37,7 +39,9 @@ export function registrationPrompt(ctx: IdentityContext, options: RegistrationOp
     `Always use project "${ctx.project}"${ctx.area ? `, area "${ctx.area}"` : ''} and team "${ctx.team}" for bus calls.`,
     'Check your inbox before starting work and after finishing a work step.',
     'Answer incoming messages with `reply` on the same message id so threads stay intact.',
-    'Create or claim a task on the board before tracked edits, and keep your status current with `now`.',
+    ctx.trackTasks === false
+      ? 'Coordinate by messages only — no task board is used. Report progress and blockers in the thread.'
+      : 'Create or claim a task on the board before tracked edits, and keep your status current with `now`.',
     'Report blockers to the master immediately instead of silently retrying.',
     'Report completion only after you have run the relevant tests or checks.',
     'Never assume another agent finished work until you received a confirmation message.',

@@ -51,6 +51,15 @@ test('peer-to-peer setting changes the coordination rule', () => {
   assert.match(registrationPrompt({ ...identity, peerToPeer: false }), /All coordination goes through the master/);
 });
 
+test('message-only coordination drops the board rules', () => {
+  const board = registrationPrompt({ ...identity, trackTasks: true });
+  const messages = registrationPrompt({ ...identity, trackTasks: false });
+
+  assert.match(board, /Create or claim a task on the board/);
+  assert.doesNotMatch(messages, /Create or claim a task on the board/);
+  assert.match(messages, /Coordinate by messages only/);
+});
+
 test('the non-negotiable safety rules are always present', () => {
   const prompt = registrationPrompt(identity);
   assert.match(prompt, /not user approval/);
