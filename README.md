@@ -18,11 +18,12 @@ systems that already exist.
 
 ## Status
 
-Phase 1 (proof of concept). Covered by tests: spawning tasks with profile,
-identity and worktree, identity mapping, inbox polling and wake-up, team
-commands/tools, dashboard, config/state persistence, and a real-CLI integration
-test. Not yet proven: loading inside AiderDesk, real worktree creation and a live
-two-task conversation.
+Phase 1 (proof of concept). Covered by 52 tests: spawning tasks with profile,
+identity and worktree, adopting running tasks, identity mapping, inbox polling
+and wake-up, team commands/tools, dashboard, config/state persistence, and a
+real-CLI integration test. Verified on the live app: extension load, command
+execution, config/state writes. Not yet proven end-to-end: real worktree
+creation and a live two-task conversation.
 
 ## Install
 
@@ -63,19 +64,62 @@ Then reload extensions in AiderDesk.
 ## Use
 
 ```
-/agent-bus-init                                            # config + register this task as master
-/agent-bus-spawn backend developer Implement the users API  # worker task, own identity, own worktree
-/agent-bus-team                                            # roster, status, unread counts
-/agent-bus-stop backend                                    # interrupt
+/agent-bus-init                                             # config + register this task as master
+/agent-bus-spawn backend developer Implement the users API   # new worker task, own identity, own worktree
+/agent-bus-join frontend developer                           # adopt THIS running task into the team
+/agent-bus-team                                              # roster, status, unread counts
+/agent-bus-stop backend                                      # interrupt
 ```
 
+Two ways to get a team member:
+
+- **spawn** creates a fresh task, assigns the role profile, puts it in its own
+  worktree and starts it with the work package.
+- **join** adopts a task that is already running. It keeps its conversation,
+  model and working directory, gains a bus identity and is told to register and
+  then *continue* — never to restart. Joining twice is idempotent; the master
+  cannot join as a worker; `maxWorkers` applies. `switchToWorktree: true` moves
+  the task into its own worktree first (carries uncommitted changes, so only for
+  tasks that have not started editing).
+
 The master agent gets `agent_bus_spawn_worker`, `agent_bus_spawn_team`,
-`agent_bus_get_team` and `agent_bus_stop_worker`; every other profile only sees
-the team overview. Conversations stay on the agent-bus MCP tools (`register`,
-`send`, `ask`, `reply`, `delegate`, `now`, `team_board`).
+`agent_bus_join_worker`, `agent_bus_get_team` and `agent_bus_stop_worker`;
+every other profile only sees the team overview. Conversations stay on the
+agent-bus MCP tools (`register`, `send`, `ask`, `reply`, `delegate`, `now`,
+`team_board`).
 
 Config lives in the project: `.aider-desk/agent-bus.json`. Identity mapping and
-wake counters live next to it in `.aider-desk/agent-bus-state.json`.
+wake counters live next to it in `.aider-desk/agent-bus-state.json` — a join
+table only, deleting it loses no messages.
+
+## How the team stays alive
+
+agent-bus stores messages; it cannot wake an idle AiderDesk task. The extension
+does that:
+
+1. every `pollIntervalMs` it reads unread counts via `agent-bus inbox-status --json`;
+2. idle workers outside the cooldown get `runPrompt()` with an inbox prompt;
+3. `onAgentFinished` runs the same check immediately, so replies land without
+   waiting for the next tick.
+
+No worker blocks in `inbox(wait_s: 110)` — that would occupy its agent loop and
+could not be interrupted. Guards: `wakeCooldownMs`, `maxWakesPerTask`, and a
+running task is never woken.
+
+## Configuration
+
+`.aider-desk/agent-bus.json`, all keys optional:
+
+| Key | Default | Meaning |
+|---|---|---|
+| `team` | `<project>-team` | bus team scope, must match for every call |
+| `agentBus.project` / `.area` | folder name / none | bus scope; worktrees derive a different name, so it is always passed explicitly |
+| `agentBus.binary` / `.nodeBinary` | `agent-bus` / none | CLI entry point and, if set, the interpreter that runs it |
+| `isolation.mode` | `worktree` | `worktree`, `shared`, or `hybrid` (workers as worktree) |
+| `orchestration.maxWorkers` | `5` | cap for spawned **and** adopted workers |
+| `orchestration.peerToPeerEnabled` | `true` | allow direct worker-to-worker messages |
+| `orchestration.pollIntervalMs` / `wakeCooldownMs` / `maxWakesPerTask` | `20000` / `15000` / `20` | wake-up pacing and budget |
+| `profiles.provider` / `.model` | learned | fallback only; the real model is learned from the first agent run |
 
 ## Repository layout
 
@@ -83,6 +127,8 @@ This repository *is* the extension, installed project-locally the way AiderDesk
 expects it:
 
 ```
+README.md                                  this file
+LICENSE                                    MIT
 AGENTS.md                                  instructions for agents (repo + team membership)
 .aider-desk/agent-bus.json                 project config used by this checkout
 .aider-desk/mcp-servers.json               MCP server entry (machine-specific Node path)
@@ -103,9 +149,29 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-44 tests, ESLint + Prettier configured. Design decisions and pitfalls (explicit
-bus scope, no blocking inbox waits, worktree rules) are documented in
-[`AGENTS.md`](AGENTS.md) and the [extension README](.aider-desk/extensions/aiderdesk-agent-bus/README.md).
+52 tests, ESLint + Prettier configured:
+
+| Suite | Covers |
+|---|---|
+| unit | config merge/clamping, state join table, prompt content, inbox-status normalization |
+| seam | spawning and adopting tasks against fake `ProjectContext`/`TaskContext`, worktree fallback, master-only tools |
+| wake-up | running task, cooldown, budget, empty inbox, broken CLI |
+| integration | real CLI in a throwaway `AGENT_BUS_DIR`: two identities register, message, unread counts, scope isolation; skips when the CLI is absent |
+
+Design decisions and pitfalls (explicit bus scope, no blocking inbox waits,
+worktree rules) are documented in [`AGENTS.md`](AGENTS.md) and the
+[extension README](.aider-desk/extensions/aiderdesk-agent-bus/README.md).
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `NODE_MODULE_VERSION 127 … requires 147` | CLI installed with Node 22, executed by Node 26 | set `agentBus.nodeBinary` and the MCP `command` to the same interpreter |
+| `not a git repository` on spawn | `isolation.mode: worktree` without a git repo | `git init` or switch to `shared` |
+| `unread ?` in `/agent-bus-team` | CLI missing or a different bus scope | check `agentBus.binary`/`nodeBinary`, then the `project`/`team` values |
+| workers never receive messages | each call used a different scope | pass `project`/`area`/`team` explicitly, including in worktrees |
+| `Exception in connector … scipy … _spropack` in AiderDesk | the app's Python venv ships a scipy build the OS loader rejects (not this extension) | pin a working scipy in `~/Library/Application Support/aider-desk/python-venv`, or disable the repo map |
+| panel does not appear | project has no team yet | run `/agent-bus-init`, the panel is registered once a master or worker exists |
 
 ## License
 

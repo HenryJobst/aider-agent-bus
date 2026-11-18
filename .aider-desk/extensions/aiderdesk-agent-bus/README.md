@@ -26,8 +26,9 @@ AiderDesk tasks ──▶ extension ──▶ agent-bus (MCP tools for agents, C
 ## Status
 
 Implemented and covered by tests: spawning (task + profile + worktree + first
-prompt), identity mapping, inbox polling and wake-up, team commands/tools, UI
-dashboard, config/state persistence, CLI integration against a real bus.
+prompt), adopting existing tasks, identity mapping, inbox polling and wake-up,
+team commands/tools, UI dashboard, config/state persistence, CLI integration
+against a real bus.
 
 Not yet proven: loading inside AiderDesk, real `createTask` worktrees and a
 live two-task conversation — see [Phase 1 acceptance run](#phase-1-acceptance-run).
@@ -228,7 +229,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 44 tests, node:test + tsx
+npm test          # 52 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
 node ./validate-ui.mjs src/ui/Dashboard.jsx   # local copy of the AiderDesk UI validator
 ```
@@ -287,5 +288,8 @@ conversation inside AiderDesk. Those are the Phase 1 acceptance steps below.
   `mergeWorktreeToWorktree`), the extension only reports it to the master.
 - Agent profiles registered by the extension need a valid provider/model pair;
   until the first agent run, they use `profiles.provider`/`profiles.model`.
+- Adopted tasks keep the profile they were already running with. The role rules
+  reach them through the registration prompt, not through a role profile, so
+  they are worded, not enforced (tool approvals stay as they were).
 - Chat and Kanban stay in agent-bus Cockpit (`agent-bus cockpit`); the extension
   dashboard shows roster, status and unread counts.
