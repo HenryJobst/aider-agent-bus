@@ -108,12 +108,18 @@ export class ProjectRuntime {
     });
   }
 
-  profileForJob(role: string): AgentProfile | undefined {
-    if (!this.modelDefaults) {
+  profileForJob(role: string, fallback?: ProfileDefaults): AgentProfile | undefined {
+    const defaults = fallback ?? this.modelDefaults;
+    if (!defaults) {
       return undefined;
     }
     const resolved = resolveRole(role);
-    return this.profiles().find((profile) => profile.id === ROLE_PROFILE_IDS[resolved]);
+    return buildProfiles({
+      mcpServerName: this.config.mcpServerName,
+      peerToPeer: this.config.orchestration.peerToPeerEnabled,
+      maxIterations: this.config.profiles.maxIterations,
+      defaults,
+    }).find((profile) => profile.id === ROLE_PROFILE_IDS[resolved]);
   }
 
   identityFor(record: WorkerRecord): IdentityContext {
@@ -126,7 +132,9 @@ export class ProjectRuntime {
       capabilities: record.capabilities,
       masterName: this.state.master?.agentName,
       peerToPeer: this.config.orchestration.peerToPeerEnabled,
-      isolationMode: this.config.isolation.mode,
+      // Reality, not intention: an adopted task may still work in the shared
+      // directory even when the team default is worktree.
+      isolationMode: record.worktree ? this.config.isolation.mode : 'shared',
       worktreePath: record.worktree ?? undefined,
     };
   }

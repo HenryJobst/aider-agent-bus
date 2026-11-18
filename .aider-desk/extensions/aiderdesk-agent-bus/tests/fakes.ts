@@ -17,7 +17,7 @@ import { ProjectRuntime } from '../src/core/runtime.js';
 export interface FakeCalls {
   createTask: Array<Record<string, unknown>>;
   updateTask: Array<{ id: string; updates: Record<string, unknown> }>;
-  prompts: Array<{ id: string; prompt: string; mode?: string }>;
+  prompts: Array<{ id: string; prompt: string; mode?: string; profileId?: string }>;
   switches: Array<{ id: string; options: Record<string, unknown> }>;
   interrupts: string[];
 }
@@ -63,6 +63,10 @@ export function makeTask(id: string, projectDir: string, calls: FakeCalls, optio
     data,
     runPrompt: async (prompt: string, mode?: string) => {
       calls.prompts.push({ id, prompt, mode });
+    },
+    runPromptInAgent: async (profile: { id: string }, mode: string, prompt: string | null) => {
+      calls.prompts.push({ id, prompt: prompt ?? '', mode, profileId: profile.id });
+      return [];
     },
     updateTask: async (updates: Record<string, unknown>) => {
       Object.assign(data, updates);

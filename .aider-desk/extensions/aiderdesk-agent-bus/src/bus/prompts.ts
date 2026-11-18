@@ -22,7 +22,12 @@ function bulletList(items: string[]): string {
   return items.length > 0 ? items.map((item) => `- ${item}`).join('\n') : '- none';
 }
 
-export function registrationPrompt(ctx: IdentityContext): string {
+export interface RegistrationOptions {
+  /** Replaces the default "start now" line, e.g. when adopting a running task. */
+  closing?: string;
+}
+
+export function registrationPrompt(ctx: IdentityContext, options: RegistrationOptions = {}): string {
   const scope = ctx.area
     ? `project "${ctx.project}", area "${ctx.area}", team "${ctx.team}"`
     : `project "${ctx.project}", team "${ctx.team}"`;
@@ -50,10 +55,12 @@ export function registrationPrompt(ctx: IdentityContext): string {
     'If the agent-bus MCP tools are not available, stop and report that instead of improvising: do not use the CLI, do not edit files by hand, and do not claim readiness.',
   );
 
-  const worktree =
-    ctx.isolationMode === 'worktree' || ctx.isolationMode === 'hybrid'
-      ? `\nFile isolation: you work in ${ctx.worktreePath ? `the git worktree at ${ctx.worktreePath}` : 'your own git worktree'}. Do not edit files outside it.\n`
-      : '';
+  // Only claim an isolated worktree when one actually exists. An adopted task
+  // usually stays in the shared project directory, and a false claim there is
+  // worse than no claim.
+  const isolation = ctx.worktreePath
+    ? `\nFile isolation: you work in the git worktree at ${ctx.worktreePath}. Do not edit files outside it.\n`
+    : '\nFile isolation: you work in the project directory, not in a separate worktree. Touch only files that belong to your work package.\n';
 
   return [
     'You are part of an AiderDesk multi-agent team.',
@@ -88,12 +95,13 @@ export function registrationPrompt(ctx: IdentityContext): string {
     '```',
     '',
     `Scope for every bus call: ${scope}.`,
-    worktree,
+    isolation,
     '## Team rules',
     '',
     bulletList(rules),
     '',
-    'Start now: register, read your inbox and team board, then confirm in one short message that you are ready.',
+    options.closing ??
+      'Start now: register, read your inbox and team board, then confirm in one short message that you are ready.',
   ]
     .filter((line) => line !== '')
     .join('\n');
@@ -107,7 +115,9 @@ export function masterRegistrationPrompt(ctx: IdentityContext): string {
     'You coordinate work packages, spawn workers with the extension tools, review their results',
     'and ask the user before merges or other irreversible steps.',
     '',
-    registrationPrompt(ctx),
+    registrationPrompt(ctx, {
+      closing: 'Start now: register, read the board, and confirm in one short message that the team is ready.',
+    }),
   ].join('\n');
 }
 

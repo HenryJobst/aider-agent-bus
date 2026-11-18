@@ -96,6 +96,37 @@ export function ensureMaster(runtime: ProjectRuntime, task: TaskContext | null):
 }
 
 /**
+ * Starts a prompt with the role profile passed explicitly.
+ *
+ * Switching `agentProfileId` alone is not enough: AiderDesk builds the MCP
+ * connectors from the profile that is active when the run starts, and a task
+ * whose profile was switched mid-session keeps running without the enabled
+ * servers (observed as `enabledServers=[]` even though the settings were right).
+ */
+async function startWithRoleProfile(
+  runtime: ProjectRuntime,
+  task: TaskContext,
+  role: string,
+  prompt: string,
+): Promise<void> {
+  const model =
+    task.data.provider && task.data.model ? { provider: task.data.provider, model: task.data.model } : undefined;
+  const profile = runtime.profileForJob(role, model);
+
+  if (!profile) {
+    await task.runPrompt(prompt, 'code');
+    return;
+  }
+
+  void task.runPromptInAgent(profile, 'code', prompt).catch((error: unknown) => {
+    runtime.log(
+      `agent run failed for task ${task.data.id}: ${error instanceof Error ? error.message : String(error)}`,
+      'warn',
+    );
+  });
+}
+
+/**
  * Registers the calling task as master and asks it to register on the bus.
  *
  * The local join table alone gives the master no bus identity; registration
@@ -117,7 +148,7 @@ export async function registerMaster(
   await applyRoleProfile(runtime, task, 'master');
 
   try {
-    await task.runPrompt(masterRegistrationPrompt(identity), 'code');
+    await startWithRoleProfile(runtime, task, 'master', masterRegistrationPrompt(identity));
     runtime.log(`prompted task ${task.data.id} to register as "${identity.agentName}"`, 'info');
     return { ok: true, prompted: true };
   } catch (error) {
@@ -191,7 +222,7 @@ export async function spawnWorkers(runtime: ProjectRuntime, requests: SpawnReque
 
     const prompt = `${registrationPrompt(runtime.identityFor(record))}\n\n## Assigned work package\n\n${request.task}`;
     try {
-      await task.runPrompt(prompt, 'code');
+      await startWithRoleProfile(runtime, task, role, prompt);
       runtime.log(`spawned ${agentName} as task ${taskData.id} (${role}, ${runtime.config.isolation.mode})`, 'info');
       outcomes.push({ ok: true, agentName, taskId: taskData.id });
     } catch (error) {
@@ -264,17 +295,20 @@ export async function joinWorker(
   });
 
   const prompt = [
-    registrationPrompt(runtime.identityFor(record)),
-    '',
     '## Existing task',
     '',
     'You are joining the team with a task that is already in progress.',
     'Register on the bus first, then read your inbox and the team board, and continue your current work.',
     'Do not restart the task from scratch.',
+    '',
+    registrationPrompt(runtime.identityFor(record), {
+      closing:
+        'Start now: register, read your inbox and the board, then continue your current work — do not restart it.',
+    }),
   ].join('\n');
 
   try {
-    await task.runPrompt(prompt, 'code');
+    await startWithRoleProfile(runtime, task, role, prompt);
     runtime.log(`adopted task ${taskId} as ${agentName} (${role})`, 'info');
     return { ok: true, agentName, taskId };
   } catch (error) {

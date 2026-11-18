@@ -32,9 +32,18 @@ test('worktree isolation is announced with the concrete path', () => {
   assert.match(prompt, /git worktree at \/worktrees\/backend/);
 });
 
-test('shared isolation does not mention worktrees', () => {
-  const prompt = registrationPrompt({ ...identity, isolationMode: 'shared', worktreePath: undefined });
-  assert.doesNotMatch(prompt, /git worktree/);
+test('without a worktree the prompt never claims one', () => {
+  const prompt = registrationPrompt({ ...identity, isolationMode: 'worktree', worktreePath: undefined });
+
+  assert.doesNotMatch(prompt, /work in the git worktree at/);
+  assert.match(prompt, /work in the project directory, not in a separate worktree/);
+});
+
+test('an adopted task gets its own closing line', () => {
+  const prompt = registrationPrompt(identity, { closing: 'Continue your work, do not restart it.' });
+
+  assert.match(prompt, /Continue your work, do not restart it\./);
+  assert.doesNotMatch(prompt, /confirm in one short message that you are ready/);
 });
 
 test('peer-to-peer setting changes the coordination rule', () => {

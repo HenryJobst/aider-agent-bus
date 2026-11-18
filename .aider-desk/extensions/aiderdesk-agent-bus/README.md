@@ -137,12 +137,13 @@ it only for tasks that have not started editing yet.
 will not see `register`/`send`/`inbox` at all — fix `.aider-desk/mcp-servers.json`
 before spawning or joining.
 
-Both commands also switch the task to the matching role profile, because that
-profile is what enables the server (`enabledServers`). AiderDesk builds MCP
-connectors at prompt start and reuses them, so a task whose connector was
-created earlier keeps running without the tools: start a fresh prompt after the
-switch, or restart the app. `init`/`join` are idempotent, so re-running them
-after a restart is safe.
+Runs are started with the role profile passed explicitly
+(`runPromptInAgent(profile, …)`), because that profile is what enables the
+server for the run. Just switching `agentProfileId` is not enough: AiderDesk
+builds MCP connectors when a run starts and a task whose connector was created
+earlier keeps going without the tools — visible in the log as
+`enabledServers=[]` even though the task settings look correct. `init` and
+`join` are idempotent, so re-running them is safe.
 
 ## Configuration
 

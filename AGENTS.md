@@ -127,7 +127,11 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
 9. **An agent without the MCP server is useless.** `init` and `join` must keep
    printing the `mcp:` health line; without an `agent-bus` entry in
    `.aider-desk/mcp-servers.json` the agent has no `register`/`send`/`inbox`.
-10. **Joining is not spawning.** An adopted task keeps its conversation, its
+10. **Start runs with the role profile explicitly** (`runPromptInAgent`).
+    Setting `agentProfileId` via `updateTask` updates the task data but not the
+    MCP connectors of a running session — the log then shows
+    `enabledServers=[]` although the settings look right.
+11. **Joining is not spawning.** An adopted task keeps its conversation, its
     working directory and its provider/model; it only gets the role profile so
     the MCP server is enabled. Never recreate or reset an adopted task.
 

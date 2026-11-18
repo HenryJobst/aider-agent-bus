@@ -28,6 +28,10 @@ test('spawn creates a task with profile, worktree mode and a registration prompt
   assert.equal(worker?.agentName, 'test-project-backend');
   assert.equal(worker?.worktree, `/tmp/worktrees/${outcome.taskId}`);
 
+  // The profile is passed explicitly: switching agentProfileId alone does not
+  // enable the MCP server for the run.
+  assert.equal(fake.calls.prompts[0].profileId, 'agent-bus-developer');
+
   const prompt = fake.calls.prompts[0].prompt;
   assert.match(prompt, /agent name: test-project-backend/);
   assert.match(prompt, /team: test-team/);
@@ -155,6 +159,15 @@ test('registerMaster switches the task to the master profile but keeps its model
   });
 });
 
+test('without any known model the prompt falls back to the task profile', async () => {
+  const { runtime, fake } = makeRuntime({ profiles: { provider: undefined, model: undefined } });
+  const task = makeTask('plain-task', runtime.projectDir, fake.calls);
+
+  await joinWorker(runtime, task, { name: 'backend', role: 'developer' });
+
+  assert.equal(fake.calls.prompts.at(-1)!.profileId, undefined);
+});
+
 test('registerMaster without a task context reports instead of registering', async () => {
   const { runtime, fake } = makeRuntime();
 
@@ -184,6 +197,8 @@ test('joinWorker adopts an existing task without creating a new one', async () =
   const worker = runtime.state.findByTaskId('running-task');
   assert.equal(worker?.role, 'developer');
   assert.equal(worker?.status, 'starting');
+
+  assert.equal(fake.calls.prompts.at(-1)!.profileId, 'agent-bus-developer');
 
   const prompt = fake.calls.prompts.at(-1)!.prompt;
   assert.match(prompt, /You are joining the team with a task that is already in progress/);
