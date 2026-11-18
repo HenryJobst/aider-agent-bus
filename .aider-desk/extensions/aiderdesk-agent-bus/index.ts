@@ -311,7 +311,11 @@ export default class AgentBusExtension implements Extension {
       }
       case 'stop-worker': {
         const target = String(args[0] ?? '');
+        runtime.log(`dashboard stop requested for "${target}"`, 'info');
         const result = stopWorker(runtime, target);
+        if (!result.ok) {
+          runtime.log(`stop failed for "${target}": ${result.error ?? 'unknown error'}`, 'warn');
+        }
         context.triggerUIDataRefresh(DASHBOARD_ID);
         return result;
       }

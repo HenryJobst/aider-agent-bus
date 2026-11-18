@@ -71,7 +71,12 @@
               ) : null}
               {worker.error ? <span className="truncate text-error">{worker.error}</span> : null}
             </div>
-            <Button size="xs" variant="outline" onClick={() => executeExtensionAction('stop-worker', worker.agentName)}>
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={worker.status !== 'working' && worker.status !== 'starting'}
+              onClick={() => executeExtensionAction('stop-worker', worker.agentName)}
+            >
               stop
             </Button>
           </div>
