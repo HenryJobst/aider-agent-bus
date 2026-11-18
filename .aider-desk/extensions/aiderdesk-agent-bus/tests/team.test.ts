@@ -3,8 +3,8 @@ import test from 'node:test';
 
 import type { TaskContext } from '@aiderdesk/extensions';
 
-import { ensureMaster, spawnWorkers, stopWorker } from '../src/orchestration/team.js';
-import { makeRuntime } from './fakes.js';
+import { ensureMaster, registerMaster, spawnWorkers, stopWorker } from '../src/orchestration/team.js';
+import { makeRuntime, makeTask } from './fakes.js';
 
 test('spawn creates a task with profile, worktree mode and a registration prompt', async () => {
   const { runtime, fake } = makeRuntime();
@@ -109,6 +109,32 @@ test('ensureMaster registers the calling task once', () => {
 
   assert.equal(runtime.state.master?.taskId, 'master-task');
   assert.equal(runtime.state.master?.agentName, 'test-project-master');
+});
+
+test('registerMaster persists the master and queues its registration prompt', async () => {
+  const { runtime, fake } = makeRuntime();
+  const masterTask = makeTask('master-task', runtime.projectDir, fake.calls);
+
+  const result = await registerMaster(runtime, masterTask);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.prompted, true);
+  assert.equal(runtime.state.master?.agentName, 'test-project-master');
+
+  const prompt = fake.calls.prompts.at(-1)!.prompt;
+  assert.match(prompt, /You are the master of this AiderDesk multi-agent team/);
+  assert.match(prompt, /agent name: test-project-master/);
+});
+
+test('registerMaster without a task context reports instead of registering', async () => {
+  const { runtime, fake } = makeRuntime();
+
+  const result = await registerMaster(runtime, null);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.prompted, false);
+  assert.match(result.error ?? '', /no task context/);
+  assert.equal(fake.calls.prompts.length, 0);
 });
 
 test('stopWorker interrupts the mapped task and keeps the record', async () => {

@@ -96,6 +96,18 @@ export function registrationPrompt(ctx: IdentityContext): string {
     .join('\n');
 }
 
+export function masterRegistrationPrompt(ctx: IdentityContext): string {
+  return [
+    'You are the master of this AiderDesk multi-agent team.',
+    '',
+    'Register yourself on the bus now, then read the board and confirm that the team is ready.',
+    'You coordinate work packages, spawn workers with the extension tools, review their results',
+    'and ask the user before merges or other irreversible steps.',
+    '',
+    registrationPrompt(ctx),
+  ].join('\n');
+}
+
 export function inboxWakePrompt(unread: number, ctx: IdentityContext): string {
   return [
     `You have ${unread} unread agent-bus message${unread === 1 ? '' : 's'} as "${ctx.agentName}".`,

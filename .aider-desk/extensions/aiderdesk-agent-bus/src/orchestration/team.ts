@@ -8,7 +8,7 @@
 
 import type { TaskContext } from '@aiderdesk/extensions';
 
-import { registrationPrompt } from '../bus/prompts.js';
+import { masterRegistrationPrompt, registrationPrompt } from '../bus/prompts.js';
 import type { ProjectRuntime } from '../core/runtime.js';
 import type { WorkerRecord } from '../core/state.js';
 import { resolveRole } from '../profiles.js';
@@ -64,6 +64,34 @@ export function ensureMaster(runtime: ProjectRuntime, task: TaskContext | null):
   const agentName = `${slugify(runtime.config.agentBus.project) || 'project'}-master`;
   runtime.state.setMaster({ agentName, taskId: task.data.id });
   runtime.log(`registered task ${task.data.id} as master "${agentName}"`, 'info');
+}
+
+/**
+ * Registers the calling task as master and asks it to register on the bus.
+ *
+ * The local join table alone gives the master no bus identity; registration
+ * has to happen through the agent's MCP tools.
+ */
+export async function registerMaster(
+  runtime: ProjectRuntime,
+  task: TaskContext | null,
+): Promise<{ ok: boolean; prompted: boolean; error?: string }> {
+  ensureMaster(runtime, task);
+  const identity = runtime.masterIdentity();
+  if (!task || !identity) {
+    return { ok: false, prompted: false, error: 'no task context to register as master' };
+  }
+  if (!runtime.state.master) {
+    return { ok: false, prompted: false, error: 'master registration was not persisted' };
+  }
+
+  try {
+    await task.runPrompt(masterRegistrationPrompt(identity), 'code');
+    runtime.log(`prompted task ${task.data.id} to register as "${identity.agentName}"`, 'info');
+    return { ok: true, prompted: true };
+  } catch (error) {
+    return { ok: false, prompted: false, error: describe(error, false) };
+  }
 }
 
 export async function spawnWorkers(runtime: ProjectRuntime, requests: SpawnRequest[]): Promise<SpawnOutcome[]> {

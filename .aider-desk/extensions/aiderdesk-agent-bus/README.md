@@ -90,7 +90,7 @@ Commands (run in the master task):
 
 | Command | Effect |
 |---|---|
-| `/agent-bus-init` | write the config, reload it, register this task as master |
+| `/agent-bus-init` | write the config, register this task as master, queue the master's bus registration and report bus reachability |
 | `/agent-bus-team` | master, workers, roles, task ids, worktrees, unread counts |
 | `/agent-bus-spawn <name> <developer\|reviewer\|analyst> <work package>` | create and start a worker |
 | `/agent-bus-stop <name or task id>` | interrupt a worker, keep its registration |

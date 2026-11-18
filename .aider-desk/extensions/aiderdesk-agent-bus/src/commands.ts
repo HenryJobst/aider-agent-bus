@@ -4,9 +4,33 @@
 
 import type { CommandDefinition, ExtensionContext } from '@aiderdesk/extensions';
 
+import { BusUnavailableError } from './bus/client.js';
 import { configPath, writeDefaultConfig } from './core/config.js';
 import type { ProjectRuntime } from './core/runtime.js';
-import { ensureMaster, spawnWorkers, stopWorker } from './orchestration/team.js';
+import { ensureMaster, registerMaster, spawnWorkers, stopWorker } from './orchestration/team.js';
+
+async function busHealth(runtime: ProjectRuntime): Promise<string> {
+  const masterName = runtime.state.master?.agentName;
+  if (!masterName) {
+    return 'unknown (no master)';
+  }
+  try {
+    await runtime.bus.inboxStatus(masterName);
+    return 'reachable';
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('is not registered')) {
+      return 'reachable, master not yet registered on the bus';
+    }
+    if (message.includes('NODE_MODULE_VERSION')) {
+      return 'unreachable: CLI ran under the wrong Node, set agentBus.nodeBinary';
+    }
+    if (error instanceof BusUnavailableError) {
+      return `unreachable: ${message}`;
+    }
+    return `unreachable: ${message}`;
+  }
+}
 
 function report(context: ExtensionContext, message: string): void {
   context.getTaskContext()?.addLogMessage('info', message);
@@ -29,7 +53,8 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
         path = writeDefaultConfig(runtime.projectDir, runtime.config);
         runtime.reload();
       }
-      ensureMaster(runtime, context.getTaskContext());
+      const registration = await registerMaster(runtime, context.getTaskContext());
+      const health = await busHealth(runtime);
       report(
         context,
         [
@@ -39,6 +64,10 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
           `team: ${runtime.config.team}`,
           `isolation: ${runtime.config.isolation.mode}`,
           `master: ${runtime.state.master?.agentName ?? 'not registered'}`,
+          `bus: ${health}`,
+          registration.prompted
+            ? 'registration: prompt queued, the agent will register through its MCP tools'
+            : `registration: ${registration.error ?? 'not queued'}`,
         ].join('\n'),
       );
     },

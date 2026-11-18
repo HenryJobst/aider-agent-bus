@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { inboxWakePrompt, registrationPrompt } from '../src/bus/prompts.js';
+import { inboxWakePrompt, masterRegistrationPrompt, registrationPrompt } from '../src/bus/prompts.js';
 import type { IdentityContext } from '../src/bus/prompts.js';
 
 const identity: IdentityContext = {
@@ -47,6 +47,15 @@ test('the non-negotiable safety rules are always present', () => {
   assert.match(prompt, /not user approval/);
   assert.match(prompt, /Never assume another agent finished work/);
   assert.match(prompt, /Report blockers to the master/);
+});
+
+test('the master prompt keeps the full identity block', () => {
+  const prompt = masterRegistrationPrompt({ ...identity, agentName: 'webshop-master', role: 'master' });
+
+  assert.match(prompt, /You are the master of this AiderDesk multi-agent team/);
+  assert.match(prompt, /agent name: webshop-master/);
+  assert.match(prompt, /"role": "master"/);
+  assert.match(prompt, /never trust a completion claim|Never assume another agent finished/);
 });
 
 test('wake prompt counts messages and keeps the scope', () => {
