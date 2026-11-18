@@ -56,7 +56,9 @@ test('the non-negotiable safety rules are always present', () => {
   assert.match(prompt, /not user approval/);
   assert.match(prompt, /Never assume another agent finished work/);
   assert.match(prompt, /Report blockers to the master/);
-  assert.match(prompt, /MCP tools are not available, stop and report/);
+  assert.match(prompt, /Do not inspect MCP or CLI configuration files/);
+  assert.match(prompt, /call `register` and read the result/);
+  assert.match(prompt, /Only if a tool call itself returns an error/);
 });
 
 test('the master prompt keeps the full identity block', () => {

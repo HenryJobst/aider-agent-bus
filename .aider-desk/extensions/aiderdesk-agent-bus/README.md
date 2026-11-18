@@ -314,5 +314,9 @@ conversation inside AiderDesk. Those are the Phase 1 acceptance steps below.
   profile. Their model is preserved; only a task without provider/model falls
   back to the learned pair, and if neither exists the switch is skipped — the
   task then lacks the bus tools.
+- Tool use is only as good as the model. Observed: a run with 95 tools loaded
+  stopped after three seconds claiming the bus tools were missing, after reading
+  the empty *global* MCP config. The prompt now forbids that reasoning, but a
+  strong model for team roles remains the safer choice.
 - Chat and Kanban stay in agent-bus Cockpit (`agent-bus cockpit`); the extension
   dashboard shows roster, status and unread counts.

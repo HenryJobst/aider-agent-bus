@@ -52,7 +52,10 @@ export function registrationPrompt(ctx: IdentityContext, options: RegistrationOp
 
   rules.push("Do not change team configuration, other agents' tasks, or the bus scope on your own.");
   rules.push(
-    'If the agent-bus MCP tools are not available, stop and report that instead of improvising: do not use the CLI, do not edit files by hand, and do not claim readiness.',
+    'Call the agent-bus tools directly. Do not inspect MCP or CLI configuration files, do not run `command -v`, and do not conclude from memory that the tools are missing: call `register` and read the result.',
+  );
+  rules.push(
+    'Only if a tool call itself returns an error, stop and report that exact error. Never substitute the CLI, hand-edited files, or a readiness claim.',
   );
 
   // Only claim an isolated worktree when one actually exists. An adopted task

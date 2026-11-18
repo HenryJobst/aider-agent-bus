@@ -140,7 +140,10 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
         );
       }
       if (health.some((entry) => entry.registered === false)) {
-        lines.push('A "NOT registered" agent needs a fresh prompt in its task (send any message there).');
+        lines.push(
+          'A "NOT registered" agent needs a fresh prompt in its task (send any message there). ' +
+            'If the log shows `Running prompt with` many tools for that run, the tools were present and the agent ignored them — use a stronger model for that role.',
+        );
       }
 
       report(context, lines.join('\n'));
