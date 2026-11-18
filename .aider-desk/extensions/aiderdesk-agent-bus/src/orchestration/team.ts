@@ -220,15 +220,18 @@ export async function joinWorker(
     }
   }
 
-  // The task keeps its conversation, but it needs the role profile so the
-  // agent-bus MCP server is actually enabled for it.
-  const defaults = runtime.modelDefaults;
-  if (defaults && task.data.agentProfileId !== ROLE_PROFILE_IDS[role]) {
+  // The task keeps its conversation and model, but it needs the role profile so
+  // the agent-bus MCP server is actually enabled for it.
+  const profileModel =
+    task.data.provider && task.data.model
+      ? { provider: task.data.provider, model: task.data.model }
+      : runtime.modelDefaults;
+  if (profileModel && task.data.agentProfileId !== ROLE_PROFILE_IDS[role]) {
     try {
       await task.updateTask({
         agentProfileId: ROLE_PROFILE_IDS[role],
-        provider: defaults.provider,
-        model: defaults.model,
+        provider: profileModel.provider,
+        model: profileModel.model,
       });
     } catch (error) {
       runtime.log(

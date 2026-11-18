@@ -174,6 +174,22 @@ test('joinWorker adopts an existing task without creating a new one', async () =
   assert.match(prompt, /agent name: test-project-frontend/);
 });
 
+test('join keeps the task model and only swaps the profile', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('running-task', runtime.projectDir, fake.calls, {
+    provider: 'acme',
+    model: 'acme-model',
+  });
+
+  await joinWorker(runtime, task, { name: 'frontend', role: 'reviewer' });
+
+  assert.deepEqual(fake.calls.updateTask[0].updates, {
+    agentProfileId: 'agent-bus-reviewer',
+    provider: 'acme',
+    model: 'acme-model',
+  });
+});
+
 test('joining again keeps the identity and does not duplicate the record', async () => {
   const { runtime, fake } = makeRuntime();
   const task = makeTask('running-task', runtime.projectDir, fake.calls);

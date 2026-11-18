@@ -125,8 +125,8 @@ extension never fakes a bus identity.
 member. It keeps its conversation and working directory, gets the bus identity
 and a prompt that says "register, then continue your current work — do not
 restart". The task is switched to the role profile so the agent-bus MCP server
-is actually enabled for it (`agentProfileId` + learned provider/model); without
-a known model the switch is skipped and the agent may have no bus tools.
+is actually enabled for it (`agentProfileId`), while its provider/model stay
+unchanged. Only a task without provider/model falls back to the learned pair.
 Joining twice is idempotent (identity is reused), the master task cannot join as
 a worker, and `maxWorkers` applies. Set `switchToWorktree: true` to move the
 task into its own worktree first; that carries uncommitted changes along, so use
@@ -297,7 +297,8 @@ conversation inside AiderDesk. Those are the Phase 1 acceptance steps below.
 - Agent profiles registered by the extension need a valid provider/model pair;
   until the first agent run, they use `profiles.provider`/`profiles.model`.
 - Adopted tasks are switched to the role profile, which replaces their previous
-  profile and may replace their model. Without a learned provider/model pair the
-  switch is skipped, and the task may then lack the bus tools.
+  profile. Their model is preserved; only a task without provider/model falls
+  back to the learned pair, and if neither exists the switch is skipped — the
+  task then lacks the bus tools.
 - Chat and Kanban stay in agent-bus Cockpit (`agent-bus cockpit`); the extension
   dashboard shows roster, status and unread counts.
