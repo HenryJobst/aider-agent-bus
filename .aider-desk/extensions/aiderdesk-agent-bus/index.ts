@@ -30,7 +30,8 @@ import { configPath } from './src/core/config.js';
 import { ProjectRuntime } from './src/core/runtime.js';
 import { stopWorker } from './src/orchestration/team.js';
 import { InboxWatcher } from './src/orchestration/wakeup.js';
-import { ROLE_PROFILE_IDS } from './src/profiles.js';
+import { ROLE_PROFILE_IDS, buildProfiles } from './src/profiles.js';
+import type { ProfileDefaults } from './src/profiles.js';
 import { createTeamTools } from './src/tools.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -52,6 +53,7 @@ export default class AgentBusExtension implements Extension {
   private readonly watchers = new Map<string, InboxWatcher>();
   private readonly lastPollAt = new Map<string, number>();
   private readonly profileOverrides = new Map<string, AgentProfile>();
+  private learnedDefaults: ProfileDefaults | null = null;
   private pollTimer?: NodeJS.Timeout;
 
   async onLoad(context: ExtensionContext): Promise<void> {
@@ -124,11 +126,20 @@ export default class AgentBusExtension implements Extension {
   }
 
   getAgents(context: ExtensionContext): AgentProfile[] {
+    // AiderDesk asks for agents in a *global* context, so this must not depend on
+    // an open project. Otherwise the profiles never exist and every task that
+    // references them fails with "Agent profile ... not found".
     const runtime = this.tryRuntime(context);
-    if (!runtime) {
-      return [];
-    }
-    return runtime.profiles().map((profile) => this.profileOverrides.get(profile.id) ?? profile);
+    const defaults = this.learnedDefaults ?? runtime?.modelDefaults ?? { provider: 'unset', model: 'unset' };
+
+    const profiles = buildProfiles({
+      mcpServerName: runtime?.config.mcpServerName ?? 'agent-bus',
+      peerToPeer: runtime?.config.orchestration.peerToPeerEnabled ?? true,
+      maxIterations: runtime?.config.profiles.maxIterations ?? 100,
+      defaults,
+    });
+
+    return profiles.map((profile) => this.profileOverrides.get(profile.id) ?? profile);
   }
 
   async onAgentProfileUpdated(
@@ -138,6 +149,9 @@ export default class AgentBusExtension implements Extension {
   ): Promise<AgentProfile> {
     if (agentId.startsWith('agent-bus-')) {
       this.profileOverrides.set(agentId, updatedProfile);
+    }
+    if (updatedProfile.provider && updatedProfile.model) {
+      this.learnedDefaults = { provider: updatedProfile.provider, model: updatedProfile.model };
     }
     return updatedProfile;
   }
@@ -152,6 +166,9 @@ export default class AgentBusExtension implements Extension {
     }
     runtime.runningTasks.add(taskId);
     runtime.learnDefaults(event.agentProfile?.provider, event.agentProfile?.model);
+    if (event.agentProfile?.provider && event.agentProfile?.model) {
+      this.learnedDefaults = { provider: event.agentProfile.provider, model: event.agentProfile.model };
+    }
     if (runtime.state.findByTaskId(taskId)) {
       runtime.state.updateWorker(taskId, { status: 'working' });
     }

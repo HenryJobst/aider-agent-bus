@@ -177,6 +177,7 @@ worktree rules) are documented in [`AGENTS.md`](AGENTS.md) and the
 | `not a git repository` on spawn | `isolation.mode: worktree` without a git repo | `git init` or switch to `shared` |
 | `unread ?` in `/agent-bus-team` | CLI missing or a different bus scope | check `agentBus.binary`/`nodeBinary`, then the `project`/`team` values |
 | workers never receive messages | each call used a different scope | pass `project`/`area`/`team` explicitly, including in worktrees |
+| log says `Agent profile with id agent-bus-… not found` | the extension registered no profiles (global context) | reload extensions; profiles must be listed even without an open project |
 | agent says it has no agent-bus tools | no MCP server configured, or the task's connector was created before the server/profile existed | add the `agent-bus` entry to `.aider-desk/mcp-servers.json`, re-run init/join, then start a fresh prompt or restart the app — existing connectors are not rebuilt |
 | `Exception in connector … scipy … _spropack` in AiderDesk | the app's Python venv ships a scipy build the OS loader rejects (not this extension) | pin a working scipy in `~/Library/Application Support/aider-desk/python-venv`, or disable the repo map |
 | panel does not appear | project has no team yet | run `/agent-bus-init`, the panel is registered once a master or worker exists |

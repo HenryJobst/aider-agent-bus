@@ -138,6 +138,7 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
 | `NODE_MODULE_VERSION` | CLI executed by the wrong Node — use `node@22` |
 | `not a git repository` on spawn | `isolation.mode` is `worktree` but the project has no git repository |
 | `unread ?` in `/agent-bus-team` | CLI missing or scope mismatch |
+| `Agent profile with id agent-bus-… not found` | `getAgents()` returned nothing — it is called in a global context and must not require an open project |
 | `mcp: missing` in init/join output | no `agent-bus` entry in `.aider-desk/mcp-servers.json`; agents get no bus tools |
 | agent "has no agent-bus tools" | MCP config missing, or the task still runs a profile without `enabledServers` — re-run join |
 | `whois` shows no master | init registered the master locally only; the agent must call `register` |
