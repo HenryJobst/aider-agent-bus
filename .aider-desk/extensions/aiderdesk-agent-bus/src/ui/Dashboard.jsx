@@ -23,6 +23,17 @@
   const workers = data.workers || [];
   const active = workers.filter((worker) => worker.status === 'working').length;
   const unread = workers.reduce((sum, worker) => sum + (worker.unread || 0), 0);
+  const [note, setNote] = React.useState(null);
+
+  const stopWorker = async (agentName) => {
+    setNote(`${agentName}: stopping…`);
+    const result = await executeExtensionAction('stop-worker', agentName);
+    setNote(
+      result && result.ok
+        ? `${agentName}: interrupted`
+        : `${agentName}: ${result && result.error ? result.error : 'stop failed'}`,
+    );
+  };
 
   return (
     <div className="flex flex-col gap-3 p-3 text-xs">
@@ -75,7 +86,7 @@
               size="xs"
               variant="outline"
               disabled={worker.status !== 'working' && worker.status !== 'starting'}
-              onClick={() => executeExtensionAction('stop-worker', worker.agentName)}
+              onClick={() => stopWorker(worker.agentName)}
             >
               stop
             </Button>
@@ -84,6 +95,8 @@
 
         {workers.length === 0 ? <div className="text-text-secondary">No workers yet. Use /agent-bus-spawn.</div> : null}
       </div>
+
+      {note ? <div className="rounded bg-bg-tertiary p-1 text-text-secondary">{note}</div> : null}
     </div>
   );
 };
