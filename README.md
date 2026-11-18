@@ -18,7 +18,7 @@ systems that already exist.
 
 ## Status
 
-Phase 1 (proof of concept). Covered by 52 tests: spawning tasks with profile,
+Phase 1 (proof of concept). Covered by 53 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, team commands/tools, dashboard, config/state persistence, and a
 real-CLI integration test. Verified on the live app: extension load, command
@@ -78,8 +78,9 @@ Two ways to get a team member:
 - **join** adopts a task that is already running. It keeps its conversation and
   working directory, gains a bus identity and is told to register and then
   *continue* — never to restart. The task is switched to the role profile so the
-  agent-bus MCP server is enabled for it. Joining twice is idempotent; the master
-  cannot join as a worker; `maxWorkers` applies. `switchToWorktree: true` moves
+  agent-bus MCP server is enabled for it, while its provider/model stay
+  unchanged. Joining twice is idempotent; the master cannot join as a worker;
+  `maxWorkers` applies. `switchToWorktree: true` moves
   the task into its own worktree first (carries uncommitted changes, so only for
   tasks that have not started editing).
 
@@ -120,6 +121,7 @@ running task is never woken.
 | `team` | `<project>-team` | bus team scope, must match for every call |
 | `agentBus.project` / `.area` | folder name / none | bus scope; worktrees derive a different name, so it is always passed explicitly |
 | `agentBus.binary` / `.nodeBinary` | `agent-bus` / none | CLI entry point and, if set, the interpreter that runs it |
+| `mcpServerName` | `agent-bus` | name of the MCP server to enable in the agent profiles; must match `mcp-servers.json` |
 | `isolation.mode` | `worktree` | `worktree`, `shared`, or `hybrid` (workers as worktree) |
 | `orchestration.maxWorkers` | `5` | cap for spawned **and** adopted workers |
 | `orchestration.peerToPeerEnabled` | `true` | allow direct worker-to-worker messages |
@@ -154,7 +156,7 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-52 tests, ESLint + Prettier configured:
+53 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|

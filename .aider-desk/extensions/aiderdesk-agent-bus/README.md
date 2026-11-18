@@ -237,7 +237,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 52 tests, node:test + tsx
+npm test          # 53 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
 node ./validate-ui.mjs src/ui/Dashboard.jsx   # local copy of the AiderDesk UI validator
 ```

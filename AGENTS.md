@@ -29,11 +29,13 @@ Division of responsibility — do not blur it:
 ### Layout
 
 ```
+README.md                          repository entry point
+LICENSE                            MIT
 AGENTS.md                          this file
 .aider-desk/
   agent-bus.json                   project config (team, scope, isolation, limits)
   agent-bus-state.json             task ↔ bus identity join table (runtime)
-  mcp-servers.json                 AiderDesk MCP config for agent-bus
+  mcp-servers.json                 AiderDesk MCP config for agent-bus (required!)
   extensions/aiderdesk-agent-bus/
     index.ts                       Extension implementation (tools, commands, events, UI)
     src/bus/client.ts              CLI wrapper (BusClient)
@@ -45,6 +47,34 @@ AGENTS.md                          this file
     src/ui/Dashboard.jsx           project-floating dashboard
     tests/                         node:test suite + fakes + real-CLI integration test
 ```
+
+The extension is **also installed globally** at
+`~/.aider-desk/extensions/aiderdesk-agent-bus/` (copy, `npm install --omit=dev`,
+runtime dependency is only `zod`). After changing code, sync it and reload
+extensions in AiderDesk:
+
+```bash
+rsync -a --exclude node_modules --exclude .git --exclude dist \
+  .aider-desk/extensions/aiderdesk-agent-bus/ \
+  ~/.aider-desk/extensions/aiderdesk-agent-bus/
+```
+
+Inside this repository both copies are visible to AiderDesk; in every other
+project only the global one is loaded.
+
+### Control plane
+
+| Command | Effect |
+|---|---|
+| `/agent-bus-init` | write config, register this task as master, queue its bus registration, print `bus:` and `mcp:` health |
+| `/agent-bus-spawn <name> <role> <task>` | new task + role profile + worktree + registration prompt |
+| `/agent-bus-join <name> <role>` | adopt the current task, switch it to the role profile, keep its model |
+| `/agent-bus-team` | roster, roles, task ids, worktrees, unread counts |
+| `/agent-bus-stop <name>` | interrupt a worker, keep the registration |
+
+Tools (master profile only, others see `agent_bus_get_team`):
+`agent_bus_spawn_worker`, `agent_bus_spawn_team`, `agent_bus_join_worker`,
+`agent_bus_get_team`, `agent_bus_stop_worker`.
 
 ### Environment on this machine
 
@@ -90,10 +120,16 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
    extension. Use `createTask({ workingMode })` / `switchToWorktreeWorkingMode`.
 7. **`no-console` is an error**; log through `context.log`. Type-only imports
    must use `import type`. Unused parameters get a `_` prefix.
-8. **Tests first for logic.** Config, state, prompt building, spawn parameters
-   and wake guards are unit-tested at the `ProjectContext`/`TaskContext` seam
-   with the fakes in `tests/fakes.ts`. Add a test there before changing
+8. **Tests first for logic.** Config, state, prompt building, spawn parameters,
+   adoption and wake guards are unit-tested at the `ProjectContext`/`TaskContext`
+   seam with the fakes in `tests/fakes.ts`. Add a test there before changing
    behaviour.
+9. **An agent without the MCP server is useless.** `init` and `join` must keep
+   printing the `mcp:` health line; without an `agent-bus` entry in
+   `.aider-desk/mcp-servers.json` the agent has no `register`/`send`/`inbox`.
+10. **Joining is not spawning.** An adopted task keeps its conversation, its
+    working directory and its provider/model; it only gets the role profile so
+    the MCP server is enabled. Never recreate or reset an adopted task.
 
 ### When something fails
 
@@ -102,6 +138,10 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
 | `NODE_MODULE_VERSION` | CLI executed by the wrong Node — use `node@22` |
 | `not a git repository` on spawn | `isolation.mode` is `worktree` but the project has no git repository |
 | `unread ?` in `/agent-bus-team` | CLI missing or scope mismatch |
+| `mcp: missing` in init/join output | no `agent-bus` entry in `.aider-desk/mcp-servers.json`; agents get no bus tools |
+| agent "has no agent-bus tools" | MCP config missing, or the task still runs a profile without `enabledServers` — re-run join |
+| `whois` shows no master | init registered the master locally only; the agent must call `register` |
+| `Exception in connector … scipy … _spropack` | AiderDesk's Python venv has a scipy build the OS loader rejects — not this extension; pin a working scipy or disable the repo map |
 | Extension not listed | folder is `.aider-desk/extensions/aiderdesk-agent-bus/`, reload extensions |
 | `validate-ui.mjs` errors about dependencies | run it from the extension folder, not from elsewhere |
 
@@ -154,7 +194,11 @@ check.
 | status | `now --status working\|blocked\|waiting_review\|idle` |
 
 AiderDesk-side control (master only): `agent_bus_spawn_worker`,
-`agent_bus_spawn_team`, `agent_bus_get_team`, `agent_bus_stop_worker`.
+`agent_bus_spawn_team`, `agent_bus_join_worker`, `agent_bus_get_team`,
+`agent_bus_stop_worker`.
+
+If those MCP tools are missing from your toolset, stop and report it. Do not use
+the CLI as a substitute, do not edit files by hand, and do not claim readiness.
 
 ### Behaviour rules
 
@@ -184,5 +228,9 @@ AiderDesk-side control (master only): `agent_bus_spawn_worker`,
 - An already running task can be adopted later (`/agent-bus-join` or
   `agent_bus_join_worker`). You then receive a registration prompt mid-task:
   register, read your inbox, and continue your current work — do not restart it.
+  Adoption switches your task to the role profile (so the MCP server is enabled)
+  but keeps your provider/model and conversation.
+- The panel is only registered for projects that already have a master or
+  workers; a project without a team shows no floating window.
 - The master sees your status and unread count in `agent_bus_get_team` and in
   the **Agent Bus** dashboard.
