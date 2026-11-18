@@ -1,0 +1,12 @@
+# dependencies and build output
+node_modules/
+dist/
+
+# macOS
+.DS_Store
+
+# AiderDesk runtime data (not source)
+.aider.input.history
+.aider-desk/tasks/
+.aider-desk/cache/
+.aider-desk/agent-bus-state.json
