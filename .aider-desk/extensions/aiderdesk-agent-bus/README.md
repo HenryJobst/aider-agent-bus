@@ -91,7 +91,7 @@ Commands (run in the master task):
 
 | Command | Effect |
 |---|---|
-| `/agent-bus-init` | write the config, register this task as master, queue the master's bus registration and report bus reachability |
+| `/agent-bus-init` | write the config, switch this task to the master profile (model preserved), register it as master, queue its bus registration and report `bus:`/`mcp:` health |
 | `/agent-bus-team` | master, workers, roles, task ids, worktrees, unread counts |
 | `/agent-bus-spawn <name> <developer\|reviewer\|analyst> <work package>` | create and start a worker |
 | `/agent-bus-join <name> <developer\|reviewer\|analyst>` | adopt **this** already running task into the team |
@@ -136,6 +136,13 @@ it only for tasks that have not started editing yet.
 `missing`, no `agent-bus` server is configured for the project and the agent
 will not see `register`/`send`/`inbox` at all — fix `.aider-desk/mcp-servers.json`
 before spawning or joining.
+
+Both commands also switch the task to the matching role profile, because that
+profile is what enables the server (`enabledServers`). AiderDesk builds MCP
+connectors at prompt start and reuses them, so a task whose connector was
+created earlier keeps running without the tools: start a fresh prompt after the
+switch, or restart the app. `init`/`join` are idempotent, so re-running them
+after a restart is safe.
 
 ## Configuration
 

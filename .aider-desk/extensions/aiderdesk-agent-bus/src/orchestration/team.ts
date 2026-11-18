@@ -55,6 +55,35 @@ function worktreePathOf(task: TaskContext | null): string | null {
 }
 
 /**
+ * Switches a task to the role profile, which is what enables the agent-bus MCP
+ * server for it. The conversation and the provider/model stay untouched.
+ */
+async function applyRoleProfile(runtime: ProjectRuntime, task: TaskContext, role: string): Promise<void> {
+  const resolved = resolveRole(role);
+  const model =
+    task.data.provider && task.data.model
+      ? { provider: task.data.provider, model: task.data.model }
+      : runtime.modelDefaults;
+
+  if (!model || task.data.agentProfileId === ROLE_PROFILE_IDS[resolved]) {
+    return;
+  }
+
+  try {
+    await task.updateTask({
+      agentProfileId: ROLE_PROFILE_IDS[resolved],
+      provider: model.provider,
+      model: model.model,
+    });
+  } catch (error) {
+    runtime.log(
+      `could not switch task ${task.data.id} to the ${resolved} profile: ${error instanceof Error ? error.message : String(error)}`,
+      'warn',
+    );
+  }
+}
+
+/**
  * Registers the calling task as team master if the team does not have one yet.
  */
 export function ensureMaster(runtime: ProjectRuntime, task: TaskContext | null): void {
@@ -84,6 +113,8 @@ export async function registerMaster(
   if (!runtime.state.master) {
     return { ok: false, prompted: false, error: 'master registration was not persisted' };
   }
+
+  await applyRoleProfile(runtime, task, 'master');
 
   try {
     await task.runPrompt(masterRegistrationPrompt(identity), 'code');
@@ -220,26 +251,7 @@ export async function joinWorker(
     }
   }
 
-  // The task keeps its conversation and model, but it needs the role profile so
-  // the agent-bus MCP server is actually enabled for it.
-  const profileModel =
-    task.data.provider && task.data.model
-      ? { provider: task.data.provider, model: task.data.model }
-      : runtime.modelDefaults;
-  if (profileModel && task.data.agentProfileId !== ROLE_PROFILE_IDS[role]) {
-    try {
-      await task.updateTask({
-        agentProfileId: ROLE_PROFILE_IDS[role],
-        provider: profileModel.provider,
-        model: profileModel.model,
-      });
-    } catch (error) {
-      runtime.log(
-        `could not switch task ${taskId} to the ${role} profile: ${error instanceof Error ? error.message : String(error)}`,
-        'warn',
-      );
-    }
-  }
+  await applyRoleProfile(runtime, task, role);
 
   const record = runtime.state.upsertWorker({
     agentName,

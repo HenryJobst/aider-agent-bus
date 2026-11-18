@@ -132,10 +132,27 @@ test('registerMaster persists the master and queues its registration prompt', as
   assert.equal(result.ok, true);
   assert.equal(result.prompted, true);
   assert.equal(runtime.state.master?.agentName, 'test-project-master');
+  assert.equal(fake.calls.updateTask[0].updates.agentProfileId, 'agent-bus-master');
 
   const prompt = fake.calls.prompts.at(-1)!.prompt;
   assert.match(prompt, /You are the master of this AiderDesk multi-agent team/);
   assert.match(prompt, /agent name: test-project-master/);
+});
+
+test('registerMaster switches the task to the master profile but keeps its model', async () => {
+  const { runtime, fake } = makeRuntime();
+  const masterTask = makeTask('master-task', runtime.projectDir, fake.calls, {
+    provider: 'acme',
+    model: 'acme-model',
+  });
+
+  await registerMaster(runtime, masterTask);
+
+  assert.deepEqual(fake.calls.updateTask[0].updates, {
+    agentProfileId: 'agent-bus-master',
+    provider: 'acme',
+    model: 'acme-model',
+  });
 });
 
 test('registerMaster without a task context reports instead of registering', async () => {
