@@ -109,4 +109,4 @@ bus scope, no blocking inbox waits, worktree rules) are documented in
 
 ## License
 
-MIT intended; no `LICENSE` file yet.
+MIT — see [LICENSE](LICENSE). agent-bus itself is MIT as well.
