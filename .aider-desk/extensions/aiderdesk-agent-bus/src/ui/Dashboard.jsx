@@ -25,6 +25,12 @@
   const unread = workers.reduce((sum, worker) => sum + (worker.unread || 0), 0);
   const [note, setNote] = React.useState(null);
 
+  const refresh = async () => {
+    setNote('refreshing…');
+    const result = await executeExtensionAction('refresh');
+    setNote(result && result.ok ? `refreshed · ${result.registered}/${result.total} registered` : 'refresh failed');
+  };
+
   const stopWorker = async (agentName) => {
     setNote(`${agentName}: stopping…`);
     const result = await executeExtensionAction('stop-worker', agentName);
@@ -44,7 +50,7 @@
             {data.team} · {data.isolation}
           </div>
         </div>
-        <Button size="xs" variant="outline" onClick={() => executeExtensionAction('refresh')}>
+        <Button size="xs" variant="outline" onClick={refresh}>
           <FiRefreshCw className="w-3 h-3" />
         </Button>
       </div>

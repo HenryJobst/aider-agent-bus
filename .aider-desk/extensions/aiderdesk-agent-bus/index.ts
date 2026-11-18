@@ -29,7 +29,7 @@ import { createTeamCommands } from './src/commands.js';
 import { configPath } from './src/core/config.js';
 import { ProjectRuntime } from './src/core/runtime.js';
 import { stopWorker } from './src/orchestration/team.js';
-import { checkRegistration } from './src/orchestration/doctor.js';
+import { checkRegistration, collectHealth } from './src/orchestration/doctor.js';
 import { InboxWatcher } from './src/orchestration/wakeup.js';
 import { ROLE_PROFILE_IDS, buildProfiles } from './src/profiles.js';
 import type { ProfileDefaults } from './src/profiles.js';
@@ -303,11 +303,29 @@ export default class AgentBusExtension implements Extension {
       return { ok: false, error: 'no project' };
     }
 
+    runtime.log(`ui action "${action}" (${args.length} args)`, 'info');
+
     switch (action) {
       case 'refresh': {
-        await this.watchers.get(runtime.projectDir)?.pollOnce();
+        // Unread polling alone shows nothing for workers that never registered.
+        // Refresh therefore reports bus-side registration truth as well.
+        const health = await collectHealth(runtime);
+        let registered = 0;
+        for (const entry of health) {
+          if (entry.registered) {
+            registered += 1;
+          }
+          if (entry.role === 'master' || runtime.runningTasks.has(entry.taskId)) {
+            continue;
+          }
+          if (entry.registered === true) {
+            runtime.state.updateWorker(entry.taskId, { status: 'idle' });
+          } else if (entry.registered === false) {
+            runtime.state.updateWorker(entry.taskId, { status: 'blocked' });
+          }
+        }
         context.triggerUIDataRefresh(DASHBOARD_ID);
-        return { ok: true };
+        return { ok: true, registered, total: health.length };
       }
       case 'stop-worker': {
         const target = String(args[0] ?? '');
