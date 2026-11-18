@@ -122,12 +122,20 @@ extension never fakes a bus identity.
 
 **Adopting a running session.** `/agent-bus-join frontend developer` (or
 `agent_bus_join_worker` with a `taskId`) turns an existing task into a team
-member. It keeps its conversation, model and working directory, gets the bus
-identity and a prompt that says "register, then continue your current work — do
-not restart". Joining twice is idempotent (identity is reused), the master task
-cannot join as a worker, and `maxWorkers` applies. Set `switchToWorktree: true`
-to move the task into its own worktree first; that carries uncommitted changes
-along, so use it only for tasks that have not started editing yet.
+member. It keeps its conversation and working directory, gets the bus identity
+and a prompt that says "register, then continue your current work — do not
+restart". The task is switched to the role profile so the agent-bus MCP server
+is actually enabled for it (`agentProfileId` + learned provider/model); without
+a known model the switch is skipped and the agent may have no bus tools.
+Joining twice is idempotent (identity is reused), the master task cannot join as
+a worker, and `maxWorkers` applies. Set `switchToWorktree: true` to move the
+task into its own worktree first; that carries uncommitted changes along, so use
+it only for tasks that have not started editing yet.
+
+`/agent-bus-init` and `/agent-bus-join` print an `mcp:` line. If it says
+`missing`, no `agent-bus` server is configured for the project and the agent
+will not see `register`/`send`/`inbox` at all — fix `.aider-desk/mcp-servers.json`
+before spawning or joining.
 
 ## Configuration
 
@@ -288,8 +296,8 @@ conversation inside AiderDesk. Those are the Phase 1 acceptance steps below.
   `mergeWorktreeToWorktree`), the extension only reports it to the master.
 - Agent profiles registered by the extension need a valid provider/model pair;
   until the first agent run, they use `profiles.provider`/`profiles.model`.
-- Adopted tasks keep the profile they were already running with. The role rules
-  reach them through the registration prompt, not through a role profile, so
-  they are worded, not enforced (tool approvals stay as they were).
+- Adopted tasks are switched to the role profile, which replaces their previous
+  profile and may replace their model. Without a learned provider/model pair the
+  switch is skipped, and the task may then lack the bus tools.
 - Chat and Kanban stay in agent-bus Cockpit (`agent-bus cockpit`); the extension
   dashboard shows roster, status and unread counts.

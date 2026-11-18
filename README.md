@@ -75,12 +75,17 @@ Two ways to get a team member:
 
 - **spawn** creates a fresh task, assigns the role profile, puts it in its own
   worktree and starts it with the work package.
-- **join** adopts a task that is already running. It keeps its conversation,
-  model and working directory, gains a bus identity and is told to register and
-  then *continue* — never to restart. Joining twice is idempotent; the master
+- **join** adopts a task that is already running. It keeps its conversation and
+  working directory, gains a bus identity and is told to register and then
+  *continue* — never to restart. The task is switched to the role profile so the
+  agent-bus MCP server is enabled for it. Joining twice is idempotent; the master
   cannot join as a worker; `maxWorkers` applies. `switchToWorktree: true` moves
   the task into its own worktree first (carries uncommitted changes, so only for
   tasks that have not started editing).
+
+Both commands print an `mcp:` line. If it says `missing`, no `agent-bus` server
+is configured for the project and agents will not see `register`/`send`/`inbox`
+— configure `.aider-desk/mcp-servers.json` first.
 
 The master agent gets `agent_bus_spawn_worker`, `agent_bus_spawn_team`,
 `agent_bus_join_worker`, `agent_bus_get_team` and `agent_bus_stop_worker`;
@@ -170,6 +175,7 @@ worktree rules) are documented in [`AGENTS.md`](AGENTS.md) and the
 | `not a git repository` on spawn | `isolation.mode: worktree` without a git repo | `git init` or switch to `shared` |
 | `unread ?` in `/agent-bus-team` | CLI missing or a different bus scope | check `agentBus.binary`/`nodeBinary`, then the `project`/`team` values |
 | workers never receive messages | each call used a different scope | pass `project`/`area`/`team` explicitly, including in worktrees |
+| agent says it has no agent-bus tools | the MCP server is not configured for that project | add the `agent-bus` entry to `.aider-desk/mcp-servers.json`, then restart the app so connectors are re-initialised |
 | `Exception in connector … scipy … _spropack` in AiderDesk | the app's Python venv ships a scipy build the OS loader rejects (not this extension) | pin a working scipy in `~/Library/Application Support/aider-desk/python-venv`, or disable the repo map |
 | panel does not appear | project has no team yet | run `/agent-bus-init`, the panel is registered once a master or worker exists |
 

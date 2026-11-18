@@ -159,6 +159,11 @@ test('joinWorker adopts an existing task without creating a new one', async () =
   assert.equal(outcome.agentName, 'test-project-frontend');
   assert.equal(fake.calls.createTask.length, 0);
 
+  // The role profile is required so the agent-bus MCP server is enabled.
+  assert.equal(fake.calls.updateTask[0].updates.agentProfileId, 'agent-bus-developer');
+  assert.equal(fake.calls.updateTask[0].updates.provider, 'test');
+  assert.equal(fake.calls.updateTask[0].updates.model, 'test-model');
+
   const worker = runtime.state.findByTaskId('running-task');
   assert.equal(worker?.role, 'developer');
   assert.equal(worker?.status, 'starting');

@@ -46,6 +46,9 @@ export function registrationPrompt(ctx: IdentityContext): string {
   }
 
   rules.push("Do not change team configuration, other agents' tasks, or the bus scope on your own.");
+  rules.push(
+    'If the agent-bus MCP tools are not available, stop and report that instead of improvising: do not use the CLI, do not edit files by hand, and do not claim readiness.',
+  );
 
   const worktree =
     ctx.isolationMode === 'worktree' || ctx.isolationMode === 'hybrid'

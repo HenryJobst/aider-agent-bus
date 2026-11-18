@@ -9,6 +9,19 @@ import { configPath, writeDefaultConfig } from './core/config.js';
 import type { ProjectRuntime } from './core/runtime.js';
 import { ensureMaster, joinWorker, registerMaster, spawnWorkers, stopWorker } from './orchestration/team.js';
 
+async function mcpHealth(context: ExtensionContext, runtime: ProjectRuntime): Promise<string> {
+  try {
+    const servers = await context.getMcpServers();
+    const entry = servers[runtime.config.mcpServerName];
+    if (!entry) {
+      return `missing — no "${runtime.config.mcpServerName}" server in the AiderDesk MCP config, agents get no bus tools`;
+    }
+    return `configured${entry.scope ? ` (scope: ${entry.scope})` : ''}`;
+  } catch {
+    return 'unknown';
+  }
+}
+
 async function busHealth(runtime: ProjectRuntime): Promise<string> {
   const masterName = runtime.state.master?.agentName;
   if (!masterName) {
@@ -55,6 +68,7 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
       }
       const registration = await registerMaster(runtime, context.getTaskContext());
       const health = await busHealth(runtime);
+      const mcp = await mcpHealth(context, runtime);
       if (runtime.hasTeam) {
         context.triggerUIComponentsReload();
       }
@@ -68,6 +82,7 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
           `isolation: ${runtime.config.isolation.mode}`,
           `master: ${runtime.state.master?.agentName ?? 'not registered'}`,
           `bus: ${health}`,
+          `mcp: ${mcp}`,
           registration.prompted
             ? 'registration: prompt queued, the agent will register through its MCP tools'
             : `registration: ${registration.error ?? 'not queued'}`,
@@ -148,7 +163,8 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
         return;
       }
       context.triggerUIComponentsReload();
-      report(context, `task ${outcome.taskId} joined the team as ${outcome.agentName} (${role})`);
+      const mcp = await mcpHealth(context, runtime);
+      report(context, `task ${outcome.taskId} joined the team as ${outcome.agentName} (${role})\nmcp: ${mcp}`);
     },
   };
 

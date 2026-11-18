@@ -11,7 +11,7 @@ import type { TaskContext } from '@aiderdesk/extensions';
 import { masterRegistrationPrompt, registrationPrompt } from '../bus/prompts.js';
 import type { ProjectRuntime } from '../core/runtime.js';
 import type { WorkerRecord } from '../core/state.js';
-import { resolveRole } from '../profiles.js';
+import { ROLE_PROFILE_IDS, resolveRole } from '../profiles.js';
 
 export interface SpawnRequest {
   name: string;
@@ -217,6 +217,24 @@ export async function joinWorker(
       await task.switchToWorktreeWorkingMode({ carryOverUncommittedChanges: true, dropSourceChanges: false });
     } catch (error) {
       return { ok: false, taskId, error: describe(error, true) };
+    }
+  }
+
+  // The task keeps its conversation, but it needs the role profile so the
+  // agent-bus MCP server is actually enabled for it.
+  const defaults = runtime.modelDefaults;
+  if (defaults && task.data.agentProfileId !== ROLE_PROFILE_IDS[role]) {
+    try {
+      await task.updateTask({
+        agentProfileId: ROLE_PROFILE_IDS[role],
+        provider: defaults.provider,
+        model: defaults.model,
+      });
+    } catch (error) {
+      runtime.log(
+        `could not switch task ${taskId} to the ${role} profile: ${error instanceof Error ? error.message : String(error)}`,
+        'warn',
+      );
     }
   }
 
