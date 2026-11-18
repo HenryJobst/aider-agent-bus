@@ -27,6 +27,7 @@ export interface FakeTaskOptions {
   worktreePath?: string | null;
   provider?: string;
   model?: string;
+  currentMode?: string;
   failSwitch?: string;
 }
 
@@ -50,6 +51,7 @@ function baseTaskData(id: string, projectDir: string, options: FakeTaskOptions):
     workingMode,
     provider: options.provider,
     model: options.model,
+    currentMode: options.currentMode,
     worktree:
       workingMode === 'worktree' && options.worktreePath !== null
         ? { path: options.worktreePath ?? `/tmp/worktrees/${id}`, branch: `wt-${id}` }

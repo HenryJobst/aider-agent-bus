@@ -138,6 +138,11 @@ it only for tasks that have not started editing yet.
 will not see `register`/`send`/`inbox` at all — fix `.aider-desk/mcp-servers.json`
 before spawning or joining.
 
+Prompts are started in the task's own mode (`currentMode`, usually `agent`).
+Mode `code` is Aider mode: the prompt goes to the Python Aider connector, which
+has no MCP tools and never registers — the log then shows
+`Running Aider for project` / `Starting Aider...`.
+
 Runs are started with the role profile passed explicitly
 (`runPromptInAgent(profile, …)`), because that profile is what enables the
 server for the run. Just switching `agentProfileId` is not enough: AiderDesk

@@ -112,13 +112,16 @@ async function startWithRoleProfile(
   const model =
     task.data.provider && task.data.model ? { provider: task.data.provider, model: task.data.model } : undefined;
   const profile = runtime.profileForJob(role, model);
+  // 'code' selects Aider mode, which has no MCP tools. Use the task's own mode
+  // (normally 'agent') so the prompt reaches the agent, not the Aider connector.
+  const mode = task.data.currentMode ?? 'agent';
 
   if (!profile) {
-    await task.runPrompt(prompt, 'code');
+    await task.runPrompt(prompt, mode);
     return;
   }
 
-  void task.runPromptInAgent(profile, 'code', prompt).catch((error: unknown) => {
+  void task.runPromptInAgent(profile, mode, prompt).catch((error: unknown) => {
     runtime.log(
       `agent run failed for task ${task.data.id}: ${error instanceof Error ? error.message : String(error)}`,
       'warn',
@@ -180,7 +183,7 @@ export async function spawnWorkers(runtime: ProjectRuntime, requests: SpawnReque
       taskData = await runtime.projectContext.createTask({
         name: `${request.name} (${role})`,
         parentId: runtime.state.master?.taskId ?? null,
-        mode: 'code',
+        mode: 'agent',
         activate: false,
         agentProfileId: profile?.id,
         workingMode: needsWorktree ? 'worktree' : 'local',

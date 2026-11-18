@@ -132,7 +132,11 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
     Setting `agentProfileId` via `updateTask` updates the task data but not the
     MCP connectors of a running session — the log then shows
     `enabledServers=[]` although the settings look right.
-11. **Joining is not spawning.** An adopted task keeps its conversation, its
+11. **Never hardcode the task mode.** `'code'` selects Aider mode: the prompt is
+    handed to the Python Aider connector ("Running Aider for project"), which has
+    no MCP tools and never registers. Use `task.data.currentMode ?? 'agent'` and
+    create tasks with `mode: 'agent'`.
+12. **Joining is not spawning.** An adopted task keeps its conversation, its
     working directory and its provider/model; it only gets the role profile so
     the MCP server is enabled. Never recreate or reset an adopted task.
 

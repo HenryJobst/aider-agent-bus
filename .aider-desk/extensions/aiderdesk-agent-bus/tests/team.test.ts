@@ -18,7 +18,7 @@ test('spawn creates a task with profile, worktree mode and a registration prompt
 
   const [created] = fake.calls.createTask;
   assert.equal(created.name, 'backend (developer)');
-  assert.equal(created.mode, 'code');
+  assert.equal(created.mode, 'agent');
   assert.equal(created.activate, false);
   assert.equal(created.workingMode, 'worktree');
   assert.equal(created.agentProfileId, 'agent-bus-developer');
@@ -37,7 +37,7 @@ test('spawn creates a task with profile, worktree mode and a registration prompt
   assert.match(prompt, /team: test-team/);
   assert.match(prompt, /"name": "test-project-backend"/);
   assert.match(prompt, /## Assigned work package\n\nImplement the users API/);
-  assert.equal(fake.calls.prompts[0].mode, 'code');
+  assert.equal(fake.calls.prompts[0].mode, 'agent');
 });
 
 test('spawn falls back to switching into a worktree when the task starts local', async () => {
@@ -204,6 +204,15 @@ test('joinWorker adopts an existing task without creating a new one', async () =
   assert.match(prompt, /You are joining the team with a task that is already in progress/);
   assert.match(prompt, /Do not restart the task from scratch/);
   assert.match(prompt, /agent name: test-project-frontend/);
+});
+
+test('the run uses the task mode instead of a hardcoded one', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('task-in-aider-mode', runtime.projectDir, fake.calls, { currentMode: 'aider' });
+
+  await joinWorker(runtime, task, { name: 'backend', role: 'developer' });
+
+  assert.equal(fake.calls.prompts.at(-1)!.mode, 'aider');
 });
 
 test('join keeps the task model and only swaps the profile', async () => {
