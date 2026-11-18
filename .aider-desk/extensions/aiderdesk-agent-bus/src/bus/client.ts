@@ -45,6 +45,21 @@ export class BusUnavailableError extends Error {
   }
 }
 
+/**
+ * Non-zero exit from the CLI. `message` is the CLI's stderr, not the
+ * "Command failed: …" wrapper, so callers can react to phrases like
+ * "agent 'x' is not registered" instead of showing a shell command to the user.
+ */
+export class BusCommandError extends Error {
+  constructor(
+    message: string,
+    readonly exitCode?: number,
+  ) {
+    super(message);
+    this.name = 'BusCommandError';
+  }
+}
+
 function asNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -132,12 +147,19 @@ export class BusClient {
         env: this.dataDir ? { ...process.env, AGENT_BUS_DIR: this.dataDir } : process.env,
       });
     } catch (error) {
-      const err = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string };
+      const err = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string; code?: number | string };
       if (err.code === 'ENOENT') {
         const runner = this.nodeBinary ? ` with node "${this.nodeBinary}"` : '';
         throw new BusUnavailableError(
           `agent-bus binary "${this.binary}" not found${runner}. Install with: npm install -g @agent-bus-connect/cli@latest`,
         );
+      }
+
+      // execFile wraps the interesting part in `stderr`; surfacing the wrapper
+      // leaks a full shell command into the dashboard and hides the reason.
+      const stderr = (err.stderr ?? '').trim();
+      if (stderr) {
+        throw new BusCommandError(stderr, typeof err.code === 'number' ? err.code : undefined);
       }
       throw error;
     }

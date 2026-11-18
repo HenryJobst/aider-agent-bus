@@ -78,11 +78,18 @@ export class InboxWatcher {
       this.runtime.unreadByTask.set(taskId, unread);
       this.runtime.lastInboxError.delete(taskId);
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       if (error instanceof BusUnavailableError) {
-        this.runtime.lastInboxError.set(taskId, error.message);
+        this.runtime.lastInboxError.set(taskId, message);
         return 0;
       }
-      this.runtime.lastInboxError.set(taskId, error instanceof Error ? error.message : String(error));
+      // An agent that has not registered yet is not an error, it is a state.
+      if (message.includes('is not registered')) {
+        this.runtime.unreadByTask.set(taskId, 0);
+        this.runtime.lastInboxError.delete(taskId);
+        return 0;
+      }
+      this.runtime.lastInboxError.set(taskId, message);
       return 0;
     }
 

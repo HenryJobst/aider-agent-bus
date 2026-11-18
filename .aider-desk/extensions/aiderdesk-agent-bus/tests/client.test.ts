@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { BusClient, BusUnavailableError, normalizeInboxStatus } from '../src/bus/client.js';
+import { BusClient, BusCommandError, BusUnavailableError, normalizeInboxStatus } from '../src/bus/client.js';
 
 const FAKE_BUS = `#!/usr/bin/env node
 const fs = require('node:fs');
@@ -12,7 +12,10 @@ const args = process.argv.slice(2);
 if (process.env.FAKE_BUS_LOG) {
   fs.appendFileSync(process.env.FAKE_BUS_LOG, JSON.stringify(args) + '\\n');
 }
-if (args.includes('inbox-status')) {
+if (args.includes('fail')) {
+  process.stderr.write("error: agent 'ghost' is not registered\\n");
+  process.exit(1);
+} else if (args.includes('inbox-status')) {
   process.stdout.write(JSON.stringify({ unread: 2, claimed: 1, delivered: 5 }));
 } else if (args.includes('register')) {
   process.stdout.write('registered');
@@ -107,6 +110,23 @@ test('send builds a scoped message call', async () => {
   const [call] = readCalls(log);
   assert.deepEqual(call.slice(0, 6), ['send', '--from', 'p-master', '--to', 'p-backend', '--message']);
   assert.ok(call.includes('hello'));
+});
+
+test('a non-zero exit surfaces the CLI message, not the shell command', async () => {
+  const { path, log } = fakeBinary();
+  process.env.FAKE_BUS_LOG = log;
+
+  const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: path });
+
+  await assert.rejects(
+    () => client.run(['fail']),
+    (error: unknown) => {
+      assert.ok(error instanceof BusCommandError);
+      assert.match(error.message, /agent 'ghost' is not registered/);
+      assert.doesNotMatch(error.message, /Command failed/);
+      return true;
+    },
+  );
 });
 
 test('nodeBinary runs the script through that interpreter', async () => {

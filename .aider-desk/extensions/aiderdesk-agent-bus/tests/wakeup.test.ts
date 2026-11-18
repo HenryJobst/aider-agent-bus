@@ -80,6 +80,22 @@ test('an empty inbox does not trigger a prompt', async () => {
   assert.equal(fake.calls.prompts.length, promptsBefore);
 });
 
+test('an unregistered agent is a state, not an inbox error', async () => {
+  const { runtime, fake, watcher } = await setup(0);
+  runtime.bus = {
+    inboxStatus: async () => {
+      throw new Error("agent 'p-backend' is not registered");
+    },
+  } as unknown as BusClient;
+  const promptsBefore = fake.calls.prompts.length;
+
+  const unread = await watcher.checkWorker('task-1');
+
+  assert.equal(unread, 0);
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+  assert.equal(runtime.lastInboxError.has('task-1'), false);
+});
+
 test('a missing agent-bus binary degrades quietly but is reported', async () => {
   const { runtime, fake, watcher } = await setup(0);
   runtime.bus = {
