@@ -111,6 +111,18 @@ test('ensureMaster registers the calling task once', () => {
   assert.equal(runtime.state.master?.agentName, 'test-project-master');
 });
 
+test('a fresh project has no team, so no dashboard is registered', async () => {
+  const { runtime } = makeRuntime();
+  assert.equal(runtime.hasTeam, false);
+
+  ensureMaster(runtime, { data: { id: 'master-task' } } as unknown as TaskContext);
+  assert.equal(runtime.hasTeam, true);
+
+  const other = makeRuntime();
+  await spawnWorkers(other.runtime, [{ name: 'backend', role: 'developer', task: 'A' }]);
+  assert.equal(other.runtime.hasTeam, true);
+});
+
 test('registerMaster persists the master and queues its registration prompt', async () => {
   const { runtime, fake } = makeRuntime();
   const masterTask = makeTask('master-task', runtime.projectDir, fake.calls);

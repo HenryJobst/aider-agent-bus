@@ -208,7 +208,14 @@ export default class AgentBusExtension implements Extension {
 
   // UI
 
-  getUIComponents(_context: ExtensionContext): UIComponentDefinition[] {
+  getUIComponents(context: ExtensionContext): UIComponentDefinition[] {
+    // A project without a team gets no panel; otherwise every project would
+    // pop the floating window as soon as it is opened.
+    const runtime = this.tryRuntime(context);
+    if (runtime && !runtime.hasTeam) {
+      return [];
+    }
+
     return [
       {
         id: DASHBOARD_ID,

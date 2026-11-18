@@ -49,6 +49,11 @@ export class ProjectRuntime {
 
   log: RuntimeLog = (message, type = 'info') => this.context.log(`[agent-bus] ${message}`, type);
 
+  /** True once the project has been initialised as a team (master or workers exist). */
+  get hasTeam(): boolean {
+    return !!this.state.master || this.state.workers.length > 0;
+  }
+
   get pollStartedFlag(): boolean {
     return this.pollStarted;
   }

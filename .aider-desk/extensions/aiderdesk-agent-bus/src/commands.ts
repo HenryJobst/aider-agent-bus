@@ -55,6 +55,9 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
       }
       const registration = await registerMaster(runtime, context.getTaskContext());
       const health = await busHealth(runtime);
+      if (runtime.hasTeam) {
+        context.triggerUIComponentsReload();
+      }
       report(
         context,
         [
@@ -119,6 +122,7 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
         reportError(context, `spawn failed: ${outcome?.error ?? 'unknown error'}`);
         return;
       }
+      context.triggerUIComponentsReload();
       report(context, `spawned ${outcome.agentName} as task ${outcome.taskId} (${runtime.config.isolation.mode})`);
     },
   };

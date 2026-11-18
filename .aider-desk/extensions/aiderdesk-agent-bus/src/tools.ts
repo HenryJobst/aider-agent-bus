@@ -63,6 +63,7 @@ export function createTeamTools(
       if (!outcome?.ok) {
         return { ok: false, error: outcome?.error ?? 'spawn failed' };
       }
+      context.triggerUIComponentsReload();
       return {
         ok: true,
         agentName: outcome.agentName,
@@ -89,6 +90,7 @@ export function createTeamTools(
       }
       ensureMaster(runtime, context.getTaskContext());
       const outcomes = await spawnWorkers(runtime, input.workers);
+      context.triggerUIComponentsReload();
       return {
         ok: outcomes.every((outcome) => outcome.ok),
         workers: outcomes,

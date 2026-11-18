@@ -106,7 +106,10 @@ Extension tools (master profile only; other profiles get `agent_bus_get_team`):
 
 Dashboard (`project-floating`, title **Agent Bus**): agent roster with status
 dots, unread badges, per-worker `stop`, and a refresh action that polls the bus
-immediately.
+immediately. It is only registered for projects that already have a team
+(master or workers); an uninitialised project does not get a floating panel.
+The panel is minimised/dragged like any other AiderDesk floating window and
+remembers its position per project.
 
 Worker identity is `"<project>-<name>"`, e.g. `webshop-backend`. Each spawned
 task is started with a registration prompt that contains the exact `register`
