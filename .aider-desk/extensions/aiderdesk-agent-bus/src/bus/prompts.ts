@@ -108,7 +108,9 @@ export function registrationPrompt(ctx: IdentityContext, options: RegistrationOp
     bulletList(rules),
     '',
     options.closing ??
-      'Start now: register, read your inbox and team board, then confirm in one short message that you are ready.',
+      (ctx.trackTasks === false
+        ? 'Start now: register, read your inbox, then confirm in one short message that you are ready.'
+        : 'Start now: register, read your inbox and team board, then confirm in one short message that you are ready.'),
   ]
     .filter((line) => line !== '')
     .join('\n');

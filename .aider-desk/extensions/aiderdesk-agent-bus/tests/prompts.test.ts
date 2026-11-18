@@ -58,6 +58,7 @@ test('message-only coordination drops the board rules', () => {
   assert.match(board, /Create or claim a task on the board/);
   assert.doesNotMatch(messages, /Create or claim a task on the board/);
   assert.match(messages, /Coordinate by messages only/);
+  assert.doesNotMatch(messages, /team board/);
 });
 
 test('the non-negotiable safety rules are always present', () => {
