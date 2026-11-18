@@ -277,11 +277,18 @@ export async function joinWorker(
     ? request.capabilities
     : (existing?.capabilities ?? DEFAULT_CAPABILITIES);
 
-  if (request.switchToWorktree && runtime.config.isolation.mode !== 'shared' && task.data.workingMode !== 'worktree') {
-    try {
-      await task.switchToWorktreeWorkingMode({ carryOverUncommittedChanges: true, dropSourceChanges: false });
-    } catch (error) {
-      return { ok: false, taskId, error: describe(error, true) };
+  // Honour the configured isolation by default: a joined task that silently
+  // stays in the shared directory defeats the whole point of worktree mode.
+  const wantsWorktree = request.switchToWorktree ?? runtime.config.isolation.mode !== 'shared';
+  if (wantsWorktree && task.data.workingMode !== 'worktree') {
+    if (runtime.runningTasks.has(taskId)) {
+      runtime.log(`not moving task ${taskId} into a worktree while it runs — stop it first, then re-run join`, 'warn');
+    } else {
+      try {
+        await task.switchToWorktreeWorkingMode({ carryOverUncommittedChanges: true, dropSourceChanges: false });
+      } catch (error) {
+        return { ok: false, taskId, error: describe(error, true) };
+      }
     }
   }
 

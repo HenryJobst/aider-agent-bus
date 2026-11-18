@@ -231,6 +231,35 @@ test('join keeps the task model and only swaps the profile', async () => {
   });
 });
 
+test('join honours the configured worktree isolation', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('local-task', runtime.projectDir, fake.calls, { workingMode: 'local' });
+
+  await joinWorker(runtime, task, { name: 'backend', role: 'developer' });
+
+  assert.equal(fake.calls.switches.length, 1);
+});
+
+test('join never moves a running task into a worktree', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('busy-task', runtime.projectDir, fake.calls, { workingMode: 'local' });
+  runtime.runningTasks.add('busy-task');
+
+  const outcome = await joinWorker(runtime, task, { name: 'backend', role: 'developer' });
+
+  assert.equal(outcome.ok, true);
+  assert.equal(fake.calls.switches.length, 0);
+});
+
+test('shared isolation keeps an adopted task where it is', async () => {
+  const { runtime, fake } = makeRuntime({ isolation: { mode: 'shared' } });
+  const task = makeTask('local-task', runtime.projectDir, fake.calls, { workingMode: 'local' });
+
+  await joinWorker(runtime, task, { name: 'backend', role: 'developer' });
+
+  assert.equal(fake.calls.switches.length, 0);
+});
+
 test('joining again keeps the identity and does not duplicate the record', async () => {
   const { runtime, fake } = makeRuntime();
   const task = makeTask('running-task', runtime.projectDir, fake.calls);
