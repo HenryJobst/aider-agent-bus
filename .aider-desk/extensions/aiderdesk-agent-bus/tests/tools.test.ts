@@ -13,6 +13,7 @@ test('the master gets the full control plane', () => {
   assert.deepEqual(names, [
     'agent_bus_spawn_worker',
     'agent_bus_spawn_team',
+    'agent_bus_join_worker',
     'agent_bus_get_team',
     'agent_bus_stop_worker',
   ]);

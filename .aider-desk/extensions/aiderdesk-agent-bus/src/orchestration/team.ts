@@ -172,6 +172,84 @@ export async function spawnWorkers(runtime: ProjectRuntime, requests: SpawnReque
   return outcomes;
 }
 
+export interface JoinRequest {
+  name: string;
+  role: string;
+  capabilities?: string[];
+  /** Move an existing local task into its own worktree before joining. */
+  switchToWorktree?: boolean;
+}
+
+/**
+ * Adopts an existing AiderDesk task into the team.
+ *
+ * The task keeps its conversation and working directory; it only gains a bus
+ * identity and the team rules.
+ */
+export async function joinWorker(
+  runtime: ProjectRuntime,
+  task: TaskContext,
+  request: JoinRequest,
+): Promise<SpawnOutcome> {
+  const taskId = task.data.id;
+  if (runtime.state.master?.taskId === taskId) {
+    return { ok: false, taskId, error: 'this task is already the team master' };
+  }
+
+  const existing = runtime.state.findByTaskId(taskId);
+  const { maxWorkers } = runtime.config.orchestration;
+  if (!existing && runtime.state.workers.length >= maxWorkers) {
+    return {
+      ok: false,
+      taskId,
+      error: `maxWorkers (${maxWorkers}) reached. Stop a worker or raise orchestration.maxWorkers.`,
+    };
+  }
+
+  const role = resolveRole(request.role);
+  const agentName = existing?.agentName ?? agentNameFor(runtime, request.name);
+  const capabilities = request.capabilities?.length
+    ? request.capabilities
+    : (existing?.capabilities ?? DEFAULT_CAPABILITIES);
+
+  if (request.switchToWorktree && runtime.config.isolation.mode !== 'shared' && task.data.workingMode !== 'worktree') {
+    try {
+      await task.switchToWorktreeWorkingMode({ carryOverUncommittedChanges: true, dropSourceChanges: false });
+    } catch (error) {
+      return { ok: false, taskId, error: describe(error, true) };
+    }
+  }
+
+  const record = runtime.state.upsertWorker({
+    agentName,
+    taskId,
+    role,
+    name: request.name,
+    capabilities,
+    worktree: worktreePathOf(task),
+    status: 'starting',
+  });
+
+  const prompt = [
+    registrationPrompt(runtime.identityFor(record)),
+    '',
+    '## Existing task',
+    '',
+    'You are joining the team with a task that is already in progress.',
+    'Register on the bus first, then read your inbox and the team board, and continue your current work.',
+    'Do not restart the task from scratch.',
+  ].join('\n');
+
+  try {
+    await task.runPrompt(prompt, 'code');
+    runtime.log(`adopted task ${taskId} as ${agentName} (${role})`, 'info');
+    return { ok: true, agentName, taskId };
+  } catch (error) {
+    runtime.state.updateWorker(taskId, { status: 'blocked' });
+    return { ok: false, agentName, taskId, error: describe(error, false) };
+  }
+}
+
 export function stopWorker(runtime: ProjectRuntime, nameOrTaskId: string): { ok: boolean; error?: string } {
   const worker =
     runtime.state.findByName(nameOrTaskId) ??

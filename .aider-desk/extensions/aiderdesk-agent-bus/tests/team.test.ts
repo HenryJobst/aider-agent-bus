@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import type { TaskContext } from '@aiderdesk/extensions';
 
-import { ensureMaster, registerMaster, spawnWorkers, stopWorker } from '../src/orchestration/team.js';
+import { ensureMaster, joinWorker, registerMaster, spawnWorkers, stopWorker } from '../src/orchestration/team.js';
 import { makeRuntime, makeTask } from './fakes.js';
 
 test('spawn creates a task with profile, worktree mode and a registration prompt', async () => {
@@ -147,6 +147,61 @@ test('registerMaster without a task context reports instead of registering', asy
   assert.equal(result.prompted, false);
   assert.match(result.error ?? '', /no task context/);
   assert.equal(fake.calls.prompts.length, 0);
+});
+
+test('joinWorker adopts an existing task without creating a new one', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('running-task', runtime.projectDir, fake.calls, { workingMode: 'local' });
+
+  const outcome = await joinWorker(runtime, task, { name: 'frontend', role: 'developer' });
+
+  assert.equal(outcome.ok, true);
+  assert.equal(outcome.agentName, 'test-project-frontend');
+  assert.equal(fake.calls.createTask.length, 0);
+
+  const worker = runtime.state.findByTaskId('running-task');
+  assert.equal(worker?.role, 'developer');
+  assert.equal(worker?.status, 'starting');
+
+  const prompt = fake.calls.prompts.at(-1)!.prompt;
+  assert.match(prompt, /You are joining the team with a task that is already in progress/);
+  assert.match(prompt, /Do not restart the task from scratch/);
+  assert.match(prompt, /agent name: test-project-frontend/);
+});
+
+test('joining again keeps the identity and does not duplicate the record', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('running-task', runtime.projectDir, fake.calls);
+
+  const first = await joinWorker(runtime, task, { name: 'frontend', role: 'developer' });
+  const second = await joinWorker(runtime, task, { name: 'frontend-ui', role: 'reviewer' });
+
+  assert.equal(first.agentName, second.agentName);
+  assert.equal(runtime.state.workers.length, 1);
+  assert.equal(runtime.state.findByTaskId('running-task')?.role, 'reviewer');
+});
+
+test('the master cannot join as a worker', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('master-task', runtime.projectDir, fake.calls);
+  ensureMaster(runtime, task);
+
+  const outcome = await joinWorker(runtime, task, { name: 'master', role: 'developer' });
+
+  assert.equal(outcome.ok, false);
+  assert.match(outcome.error ?? '', /already the team master/);
+});
+
+test('joining respects maxWorkers', async () => {
+  const { runtime, fake } = makeRuntime({ orchestration: { maxWorkers: 1 } });
+  await spawnWorkers(runtime, [{ name: 'backend', role: 'developer', task: 'A' }]);
+  const task = makeTask('other-task', runtime.projectDir, fake.calls);
+
+  const outcome = await joinWorker(runtime, task, { name: 'frontend', role: 'developer' });
+
+  assert.equal(outcome.ok, false);
+  assert.match(outcome.error ?? '', /maxWorkers \(1\) reached/);
+  assert.equal(runtime.state.workers.length, 1);
 });
 
 test('stopWorker interrupts the mapped task and keeps the record', async () => {

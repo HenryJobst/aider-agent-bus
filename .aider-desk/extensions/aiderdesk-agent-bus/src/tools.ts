@@ -7,7 +7,7 @@ import { z } from 'zod';
 import type { ExtensionContext, ToolDefinition } from '@aiderdesk/extensions';
 
 import type { ProjectRuntime } from './core/runtime.js';
-import { ensureMaster, spawnWorkers, stopWorker } from './orchestration/team.js';
+import { ensureMaster, joinWorker, spawnWorkers, stopWorker } from './orchestration/team.js';
 
 const workerSchema = z.object({
   name: z.string().min(1).describe('Short worker name, used in the agent-bus identity, e.g. "backend"'),
@@ -109,6 +109,46 @@ export function createTeamTools(
     },
   };
 
+  const joinSchema = z.object({
+    name: z.string().min(1).describe('Short worker name, used in the agent-bus identity'),
+    role: z.enum(['developer', 'reviewer', 'analyst']).describe('Team role for the adopted task'),
+    taskId: z.string().optional().describe('Existing AiderDesk task to adopt; defaults to the calling task'),
+    capabilities: z.array(z.string()).optional().describe('Capability tags the worker advertises on the bus'),
+    switchToWorktree: z
+      .boolean()
+      .optional()
+      .describe('Move the adopted task into its own worktree first (default false)'),
+  });
+
+  const join: ToolDefinition<typeof joinSchema> = {
+    name: 'agent_bus_join_worker',
+    description:
+      'Adopt an already running AiderDesk task into the team: it keeps its conversation and working directory, gains a bus identity and registers itself. Does not restart the task.',
+    inputSchema: joinSchema,
+    async execute(input, _signal, context) {
+      const runtime = getRuntime(context);
+      if (!runtime.config.enabled) {
+        return { ok: false, error: 'agent-bus is disabled in .aider-desk/agent-bus.json' };
+      }
+
+      const task = input.taskId ? runtime.projectContext.getTask(input.taskId) : context.getTaskContext();
+      if (!task) {
+        return {
+          ok: false,
+          error: input.taskId
+            ? `task ${input.taskId} is not loaded in this AiderDesk session`
+            : 'no task context; pass taskId explicitly',
+        };
+      }
+
+      const outcome = await joinWorker(runtime, task, input);
+      if (outcome.ok) {
+        context.triggerUIComponentsReload();
+      }
+      return { ...outcome, team: formatWorkers(runtime) };
+    },
+  };
+
   const stopSchema = z.object({
     worker: z.string().min(1).describe('Worker agent name, display name or task id'),
   });
@@ -127,5 +167,5 @@ export function createTeamTools(
   if (!canSpawn) {
     return [getTeam];
   }
-  return [spawnWorker, spawnTeam, getTeam, stop];
+  return [spawnWorker, spawnTeam, join, getTeam, stop];
 }

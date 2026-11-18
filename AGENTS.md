@@ -181,5 +181,8 @@ AiderDesk-side control (master only): `agent_bus_spawn_worker`,
   keep getting woken, you are not consuming your inbox.
 - Closing your task marks your registration `closed`; messages stay on the bus
   and are delivered when the task runs again.
+- An already running task can be adopted later (`/agent-bus-join` or
+  `agent_bus_join_worker`). You then receive a registration prompt mid-task:
+  register, read your inbox, and continue your current work — do not restart it.
 - The master sees your status and unread count in `agent_bus_get_team` and in
   the **Agent Bus** dashboard.

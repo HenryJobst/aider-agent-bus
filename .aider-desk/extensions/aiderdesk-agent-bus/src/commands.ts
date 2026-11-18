@@ -7,7 +7,7 @@ import type { CommandDefinition, ExtensionContext } from '@aiderdesk/extensions'
 import { BusUnavailableError } from './bus/client.js';
 import { configPath, writeDefaultConfig } from './core/config.js';
 import type { ProjectRuntime } from './core/runtime.js';
-import { ensureMaster, registerMaster, spawnWorkers, stopWorker } from './orchestration/team.js';
+import { ensureMaster, joinWorker, registerMaster, spawnWorkers, stopWorker } from './orchestration/team.js';
 
 async function busHealth(runtime: ProjectRuntime): Promise<string> {
   const masterName = runtime.state.master?.agentName;
@@ -127,6 +127,31 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
+  const join: CommandDefinition = {
+    name: 'agent-bus-join',
+    description: 'Adopt this task into the team: /agent-bus-join <name> <developer|reviewer|analyst>',
+    execute: async (args, context) => {
+      const [name, role = 'developer'] = args;
+      if (!name) {
+        reportError(context, 'Usage: /agent-bus-join <name> <developer|reviewer|analyst>');
+        return;
+      }
+      const task = context.getTaskContext();
+      if (!task) {
+        reportError(context, 'Open the task you want to adopt and run the command inside it.');
+        return;
+      }
+      const runtime = getRuntime(context);
+      const outcome = await joinWorker(runtime, task, { name, role });
+      if (!outcome.ok) {
+        reportError(context, `join failed: ${outcome.error ?? 'unknown error'}`);
+        return;
+      }
+      context.triggerUIComponentsReload();
+      report(context, `task ${outcome.taskId} joined the team as ${outcome.agentName} (${role})`);
+    },
+  };
+
   const stop: CommandDefinition = {
     name: 'agent-bus-stop',
     description: 'Interrupt a worker: /agent-bus-stop <worker name or task id>',
@@ -146,5 +171,5 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
-  return [init, team, spawn, stop];
+  return [init, team, spawn, join, stop];
 }

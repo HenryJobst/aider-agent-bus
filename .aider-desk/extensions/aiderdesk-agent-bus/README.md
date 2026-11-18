@@ -93,6 +93,7 @@ Commands (run in the master task):
 | `/agent-bus-init` | write the config, register this task as master, queue the master's bus registration and report bus reachability |
 | `/agent-bus-team` | master, workers, roles, task ids, worktrees, unread counts |
 | `/agent-bus-spawn <name> <developer\|reviewer\|analyst> <work package>` | create and start a worker |
+| `/agent-bus-join <name> <developer\|reviewer\|analyst>` | adopt **this** already running task into the team |
 | `/agent-bus-stop <name or task id>` | interrupt a worker, keep its registration |
 
 Extension tools (master profile only; other profiles get `agent_bus_get_team`):
@@ -101,6 +102,7 @@ Extension tools (master profile only; other profiles get `agent_bus_get_team`):
 |---|---|---|
 | `agent_bus_spawn_worker` | `name`, `role`, `task`, `capabilities?` | create one task with profile, identity and worktree |
 | `agent_bus_spawn_team` | `workers[]` | several workers in one call |
+| `agent_bus_join_worker` | `name`, `role`, `taskId?`, `switchToWorktree?` | adopt an existing task (defaults to the calling task) |
 | `agent_bus_get_team` | — | roster plus resolved config |
 | `agent_bus_stop_worker` | `worker` | interrupt by agent name, display name or task id |
 
@@ -116,6 +118,15 @@ task is started with a registration prompt that contains the exact `register`
 call, the scope (`project`, `area`, `team`), the worktree path and the team
 rules. Registration is performed by the agent through its MCP tools — the
 extension never fakes a bus identity.
+
+**Adopting a running session.** `/agent-bus-join frontend developer` (or
+`agent_bus_join_worker` with a `taskId`) turns an existing task into a team
+member. It keeps its conversation, model and working directory, gets the bus
+identity and a prompt that says "register, then continue your current work — do
+not restart". Joining twice is idempotent (identity is reused), the master task
+cannot join as a worker, and `maxWorkers` applies. Set `switchToWorktree: true`
+to move the task into its own worktree first; that carries uncommitted changes
+along, so use it only for tasks that have not started editing yet.
 
 ## Configuration
 
