@@ -29,6 +29,7 @@ import { createTeamCommands } from './src/commands.js';
 import { configPath } from './src/core/config.js';
 import { ProjectRuntime } from './src/core/runtime.js';
 import { stopWorker } from './src/orchestration/team.js';
+import { checkRegistration } from './src/orchestration/doctor.js';
 import { InboxWatcher } from './src/orchestration/wakeup.js';
 import { ROLE_PROFILE_IDS, buildProfiles } from './src/profiles.js';
 import type { ProfileDefaults } from './src/profiles.js';
@@ -192,6 +193,18 @@ export default class AgentBusExtension implements Extension {
     if (watcher) {
       await watcher.checkWorker(taskId);
       context.triggerUIDataRefresh(DASHBOARD_ID);
+    }
+
+    // The run may have ended without the agent ever calling `register` — for
+    // example because its session had no MCP tools. Make that visible instead
+    // of leaving the worker in "starting" forever.
+    const registered = await checkRegistration(runtime, worker.agentName);
+    if (registered === false) {
+      runtime.state.updateWorker(taskId, { status: 'blocked' });
+      runtime.log(
+        `${worker.agentName} finished without registering on the bus — check its MCP tools, then send one more prompt`,
+        'warn',
+      );
     }
   }
 

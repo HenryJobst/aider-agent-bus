@@ -7,6 +7,7 @@ import type { CommandDefinition, ExtensionContext } from '@aiderdesk/extensions'
 import { BusUnavailableError } from './bus/client.js';
 import { configPath, writeDefaultConfig } from './core/config.js';
 import type { ProjectRuntime } from './core/runtime.js';
+import { collectHealth } from './orchestration/doctor.js';
 import { ensureMaster, joinWorker, registerMaster, spawnWorkers, stopWorker } from './orchestration/team.js';
 
 async function mcpHealth(context: ExtensionContext, runtime: ProjectRuntime): Promise<string> {
@@ -121,6 +122,31 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
+  const doctor: CommandDefinition = {
+    name: 'agent-bus-doctor',
+    description: 'Check whether the master and workers are really registered on the bus',
+    execute: async (_args, context) => {
+      const runtime = getRuntime(context);
+      const mcp = await mcpHealth(context, runtime);
+      const health = await collectHealth(runtime);
+
+      const lines = [`project ${runtime.config.agentBus.project} · team ${runtime.config.team}`, `mcp: ${mcp}`];
+      for (const entry of health) {
+        const registration =
+          entry.registered === true ? 'registered' : entry.registered === false ? 'NOT registered' : 'unknown';
+        const detail = entry.error ? `  ${entry.error}` : '';
+        lines.push(
+          `${entry.agentName}  ${entry.role}  ${registration}  unread ${entry.unread}  task ${entry.taskId}${detail}`,
+        );
+      }
+      if (health.some((entry) => entry.registered === false)) {
+        lines.push('A "NOT registered" agent needs a fresh prompt in its task (send any message there).');
+      }
+
+      report(context, lines.join('\n'));
+    },
+  };
+
   const spawn: CommandDefinition = {
     name: 'agent-bus-spawn',
     description: 'Spawn a worker: /agent-bus-spawn <name> <developer|reviewer|analyst> <work package>',
@@ -187,5 +213,5 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
-  return [init, team, spawn, join, stop];
+  return [init, team, doctor, spawn, join, stop];
 }
