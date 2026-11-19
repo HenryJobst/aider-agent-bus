@@ -59,6 +59,14 @@ MCP server, in `.aider-desk/mcp-servers.json`:
 }
 ```
 
+Copy the config templates and adjust the paths for your machine — the real
+files are gitignored because they contain local Node paths:
+
+```bash
+cp .aider-desk/agent-bus.example.json .aider-desk/agent-bus.json
+cp .aider-desk/mcp-servers.example.json .aider-desk/mcp-servers.json
+```
+
 Then reload extensions in AiderDesk.
 
 ## Use
@@ -139,8 +147,8 @@ expects it:
 README.md                                  this file
 LICENSE                                    MIT
 AGENTS.md                                  instructions for agents (repo + team membership)
-.aider-desk/agent-bus.json                 project config used by this checkout
-.aider-desk/mcp-servers.json               MCP server entry (machine-specific Node path)
+.aider-desk/agent-bus.example.json         project config template
+.aider-desk/mcp-servers.example.json       MCP server entry template
 .aider-desk/extensions/aiderdesk-agent-bus/
   index.ts                                 Extension: tools, commands, events, UI
   src/{bus,core,orchestration}/            BusClient, config, state, spawn, wake-up

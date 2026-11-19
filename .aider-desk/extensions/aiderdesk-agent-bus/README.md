@@ -153,7 +153,9 @@ earlier keeps going without the tools — visible in the log as
 
 ## Configuration
 
-`.aider-desk/agent-bus.json` (all keys optional):
+`.aider-desk/agent-bus.json` (all keys optional). Copy it from
+`.aider-desk/agent-bus.example.json`; the local file is gitignored because it
+contains machine paths.
 
 ```json
 {
@@ -253,7 +255,8 @@ types must be `import type`, unused args must be prefixed with `_`.
 ```bash
 npm test          # 53 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
-node ./validate-ui.mjs src/ui/Dashboard.jsx   # local copy of the AiderDesk UI validator
+node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
+  src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo
 ```
 
 What is covered without AiderDesk:

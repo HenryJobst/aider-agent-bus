@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "agent-bus": {
+      "command": "agent-bus-mcp",
+      "args": [],
+      "scope": "task"
+    }
+  }
+}

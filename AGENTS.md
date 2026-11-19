@@ -33,9 +33,11 @@ README.md                          repository entry point
 LICENSE                            MIT
 AGENTS.md                          this file
 .aider-desk/
-  agent-bus.json                   project config (team, scope, isolation, limits)
-  agent-bus-state.json             task ↔ bus identity join table (runtime)
-  mcp-servers.json                 AiderDesk MCP config for agent-bus (required!)
+  agent-bus.example.json           committed template for the project config
+  agent-bus.json                   local project config (gitignored)
+  agent-bus-state.json             task ↔ bus identity join table (gitignored)
+  mcp-servers.example.json         committed template for the MCP entry
+  mcp-servers.json                 local AiderDesk MCP config (gitignored, required!)
   extensions/aiderdesk-agent-bus/
     index.ts                       Extension implementation (tools, commands, events, UI)
     src/bus/client.ts              CLI wrapper (BusClient)
@@ -97,7 +99,8 @@ npm test               # node:test via tsx
 npm run typecheck      # tsc --noEmit
 npm run lint           # eslint .
 npm run format         # prettier --write .
-node ./validate-ui.mjs src/ui/Dashboard.jsx   # AiderDesk UI component validator
+node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
+  src/ui/Dashboard.jsx   # AiderDesk UI component validator
 ```
 
 `npm test` includes `tests/integration.bus.test.ts`, which talks to the real
@@ -153,7 +156,7 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
 | `whois` shows no master | init registered the master locally only; the agent must call `register` |
 | `Exception in connector … scipy … _spropack` | AiderDesk's Python venv has a scipy build the OS loader rejects — not this extension; pin a working scipy or disable the repo map |
 | Extension not listed | folder is `.aider-desk/extensions/aiderdesk-agent-bus/`, reload extensions |
-| `validate-ui.mjs` errors about dependencies | run it from the extension folder, not from elsewhere |
+| UI validator cannot resolve `sucrase`/`@types/react` | run it with the extension folder as cwd; the file lives in the AiderDesk app bundle, not in this repo |
 
 ---
 

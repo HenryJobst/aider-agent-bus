@@ -10,3 +10,7 @@ dist/
 .aider-desk/tasks/
 .aider-desk/cache/
 .aider-desk/agent-bus-state.json
+
+# local configs (copy from *.example.json)
+.aider-desk/agent-bus.json
+.aider-desk/mcp-servers.json
