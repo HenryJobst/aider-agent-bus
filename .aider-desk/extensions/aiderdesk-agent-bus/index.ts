@@ -196,7 +196,7 @@ export default class AgentBusExtension implements Extension {
 
     const watcher = this.watchers.get(runtime.projectDir);
     if (watcher) {
-      await watcher.checkWorker(taskId);
+      await watcher.checkWorker(taskId, { wake: false });
       context.triggerUIDataRefresh(DASHBOARD_ID);
     }
 

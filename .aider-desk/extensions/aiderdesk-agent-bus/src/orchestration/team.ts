@@ -173,7 +173,7 @@ export function ensureMaster(runtime: ProjectRuntime, task: TaskContext | null):
  * whose profile was switched mid-session keeps running without the enabled
  * servers (observed as `enabledServers=[]` even though the settings were right).
  */
-async function startWithRoleProfile(
+export async function startWithRoleProfile(
   runtime: ProjectRuntime,
   task: TaskContext,
   role: string,

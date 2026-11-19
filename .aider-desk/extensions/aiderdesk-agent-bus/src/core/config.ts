@@ -76,8 +76,8 @@ export function defaultConfig(projectDir: string): AgentBusConfig {
       maxWorkers: 5,
       requireReview: true,
       pollIntervalMs: 20_000,
-      wakeCooldownMs: 15_000,
-      maxWakesPerTask: 20,
+      wakeCooldownMs: 60_000,
+      maxWakesPerTask: 3,
     },
     profiles: {
       maxIterations: 100,
@@ -124,8 +124,8 @@ function normalize(config: AgentBusConfig): AgentBusConfig {
   }
   config.orchestration.maxWorkers = clampInt(config.orchestration.maxWorkers, 1, 10, 5);
   config.orchestration.pollIntervalMs = clampInt(config.orchestration.pollIntervalMs, 5_000, 600_000, 20_000);
-  config.orchestration.wakeCooldownMs = clampInt(config.orchestration.wakeCooldownMs, 0, 600_000, 15_000);
-  config.orchestration.maxWakesPerTask = clampInt(config.orchestration.maxWakesPerTask, 0, 1000, 20);
+  config.orchestration.wakeCooldownMs = clampInt(config.orchestration.wakeCooldownMs, 0, 600_000, 60_000);
+  config.orchestration.maxWakesPerTask = clampInt(config.orchestration.maxWakesPerTask, 0, 1000, 3);
   config.profiles.maxIterations = clampInt(config.profiles.maxIterations, 1, 1000, 100);
   if (typeof config.team !== 'string' || config.team.trim() === '') {
     config.team = 'default-team';

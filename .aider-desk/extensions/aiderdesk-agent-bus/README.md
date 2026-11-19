@@ -253,7 +253,9 @@ interrupted cleanly, so the extension does not use it. Instead:
 3. `onAgentFinished` performs the same check immediately, so a reply arrives
    without waiting for the next tick.
 
-Guards: `wakeCooldownMs`, `maxWakesPerTask`, and never wake a running task.
+Guards: `wakeCooldownMs` (default 60 s), `maxWakesPerTask` (default 3), never
+wake a running task, at most one wake per poll tick, and an agent that ignored
+its inbox after a wake is not woken again while the backlog stays the same.
 
 ## Code quality
 

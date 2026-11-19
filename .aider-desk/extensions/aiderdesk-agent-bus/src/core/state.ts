@@ -22,6 +22,8 @@ export interface WorkerRecord {
   muted?: boolean;
   createdAt: string;
   lastWakeAt?: string;
+  /** Unread count at the last wake; used to stop waking an agent that ignores its inbox. */
+  lastWakeUnread?: number;
   wakes: number;
 }
 

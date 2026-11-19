@@ -270,7 +270,7 @@ share the directory — give them disjoint files or run them one after another.
 | `orchestration.maxWorkers` | `5` | cap for spawned **and** adopted workers |
 | `orchestration.peerToPeerEnabled` | `true` | allow direct worker-to-worker messages |
 | `orchestration.trackTasks` | `true` | `false` = coordinate by messages only, no board rules |
-| `orchestration.pollIntervalMs` / `wakeCooldownMs` / `maxWakesPerTask` | `20000` / `15000` / `20` | wake-up pacing and budget |
+| `orchestration.pollIntervalMs` / `wakeCooldownMs` / `maxWakesPerTask` | `20000` / `60000` / `3` | wake-up pacing and budget; an agent that ignores its inbox is not woken again for the same backlog |
 | `profiles.provider` / `.model` | learned | fallback only; the real model is learned from the first agent run |
 
 ## Repository layout
@@ -326,6 +326,7 @@ worktree rules) are documented in [`AGENTS.md`](AGENTS.md) and the
 | log says `Agent profile with id agent-bus-… not found` | the extension registered no profiles (global context) | reload extensions; profiles must be listed even without an open project |
 | agent says it has no agent-bus tools | no MCP server configured, or the task's connector was created before the server/profile existed | add the `agent-bus` entry to `.aider-desk/mcp-servers.json`, re-run init/join, then start a fresh prompt or restart the app — existing connectors are not rebuilt |
 | `Exception in connector … scipy … _spropack` in AiderDesk | the app's Python venv ships a scipy build the OS loader rejects (not this extension) | pin a working scipy in `~/Library/Application Support/aider-desk/python-venv`, or disable the repo map |
+| app feels hung, many agent runs, `woke …` repeats in the log | wake loop: agents ignore their inbox, each wake is a full agent run | mute the agent (`/agent-bus-pause`), raise `wakeCooldownMs`, lower `maxWakesPerTask`; 0.2 stops such agents by itself |
 | panel does not appear | project has no team yet | run `/agent-bus-init`, the panel is registered once a master or worker exists |
 
 ## License

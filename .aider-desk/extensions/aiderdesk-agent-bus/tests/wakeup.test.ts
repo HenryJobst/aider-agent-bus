@@ -60,6 +60,57 @@ test('a muted worker is not woken although messages are waiting', async () => {
   assert.equal(runtime.state.findByTaskId('task-1')?.wakes, 0);
 });
 
+test('an agent that ignored its inbox is not woken twice for the same backlog', async () => {
+  const { runtime, fake, watcher } = await setup(2);
+  runtime.state.updateWorker('task-1', {
+    lastWakeUnread: 2,
+    lastWakeAt: new Date(0).toISOString(),
+    wakes: 1,
+  });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+});
+
+test('progress after a wake re-enables the next wake', async () => {
+  const { runtime, fake, watcher } = await setup(1);
+  runtime.state.updateWorker('task-1', {
+    lastWakeUnread: 2,
+    lastWakeAt: new Date(0).toISOString(),
+    wakes: 1,
+  });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  assert.equal(fake.calls.prompts.length, promptsBefore + 1);
+});
+
+test('exhausting the wake budget marks the worker blocked instead of spinning', async () => {
+  const { runtime, watcher } = await setup(2);
+  runtime.state.updateWorker('task-1', { wakes: runtime.config.orchestration.maxWakesPerTask });
+
+  await watcher.checkWorker('task-1');
+
+  assert.equal(runtime.state.findByTaskId('task-1')?.status, 'blocked');
+});
+
+test('one poll tick wakes at most one worker', async () => {
+  const { runtime, fake, watcher } = await setup(1);
+  await spawnWorkers(runtime, [{ name: 'second', role: 'developer', task: 'B' }]);
+  const second = runtime.state.workers.find((worker) => worker.name === 'second');
+  assert.ok(second);
+  runtime.state.updateWorker(second.taskId, { status: 'idle' });
+  stubBus(runtime, 1);
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, promptsBefore + 1);
+});
+
 test('the wake cooldown prevents prompt storms', async () => {
   const { runtime, fake, watcher } = await setup(1);
   runtime.state.updateWorker('task-1', { lastWakeAt: new Date().toISOString() });

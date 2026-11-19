@@ -7,13 +7,14 @@
  */
 
 import { BusUnavailableError } from '../bus/client.js';
+import { startWithRoleProfile } from './team.js';
 import { inboxWakePrompt } from '../bus/prompts.js';
 import type { ProjectRuntime } from '../core/runtime.js';
 
 export class InboxWatcher {
   constructor(private readonly runtime: ProjectRuntime) {}
 
-  private canWake(taskId: string): boolean {
+  private canWake(taskId: string, unread: number): boolean {
     if (this.runtime.runningTasks.has(taskId)) {
       return false;
     }
@@ -22,6 +23,11 @@ export class InboxWatcher {
       return false;
     }
     if (worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask) {
+      return false;
+    }
+    // An agent that ignored its inbox after the last wake must not be woken
+    // again for the same backlog; only progress (unread dropping) re-enables it.
+    if (typeof worker.lastWakeUnread === 'number' && unread >= worker.lastWakeUnread) {
       return false;
     }
     const cooldown = this.runtime.config.orchestration.wakeCooldownMs;
@@ -41,10 +47,19 @@ export class InboxWatcher {
     }
 
     try {
-      await task.runPrompt(inboxWakePrompt(unread, this.runtime.identityFor(worker)), 'code');
+      // Same rule as spawn/join: run with the role profile and the task's mode.
+      // 'code' would hand the prompt to the Aider connector, which never reads
+      // the inbox — that caused a wake loop until the budget ran out.
+      await startWithRoleProfile(
+        this.runtime,
+        task,
+        worker.role,
+        inboxWakePrompt(unread, this.runtime.identityFor(worker)),
+      );
       this.runtime.state.updateWorker(taskId, {
         wakes: worker.wakes + 1,
         lastWakeAt: new Date().toISOString(),
+        lastWakeUnread: unread,
         status: 'working',
       });
       this.runtime.log(`woke ${worker.agentName} for ${unread} unread message(s)`, 'info');
@@ -57,15 +72,21 @@ export class InboxWatcher {
   }
 
   async pollOnce(): Promise<void> {
+    // One wake per tick: several simultaneous agent runs are what makes the
+    // app feel hung.
     for (const worker of this.runtime.state.workers) {
       if (worker.status === 'closed' || worker.status === 'starting') {
         continue;
       }
+      const before = worker.wakes;
       await this.checkWorker(worker.taskId);
+      if ((this.runtime.state.findByTaskId(worker.taskId)?.wakes ?? before) > before) {
+        return;
+      }
     }
   }
 
-  async checkWorker(taskId: string): Promise<number> {
+  async checkWorker(taskId: string, options: { wake?: boolean } = {}): Promise<number> {
     const worker = this.runtime.state.findByTaskId(taskId);
     if (!worker) {
       return 0;
@@ -93,8 +114,20 @@ export class InboxWatcher {
       return 0;
     }
 
-    if (unread > 0 && this.canWake(taskId)) {
-      await this.wake(taskId, unread);
+    if (options.wake === false) {
+      return unread;
+    }
+
+    if (unread > 0) {
+      if (this.canWake(taskId, unread)) {
+        await this.wake(taskId, unread);
+      } else if (worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask) {
+        this.runtime.state.updateWorker(taskId, { status: 'blocked' });
+        this.runtime.log(
+          `${worker.agentName} reached maxWakesPerTask (${worker.wakes}) without consuming its inbox — muted until messages change`,
+          'warn',
+        );
+      }
     }
     return unread;
   }
