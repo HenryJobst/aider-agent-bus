@@ -22,7 +22,7 @@ zwischen zwei Systemen, die es schon gibt.
 
 **v0.2 — nutzbar, nicht gehärtet.** Für die Abstimmung zwischen Sessions
 funktional vollständig; mit rauen Kanten bei Merges und allem, was unten nicht
-als verifiziert aufgeführt ist. Abgedeckt durch 140 Tests: Tasks mit Profil,
+als verifiziert aufgeführt ist. Abgedeckt durch 146 Tests: Tasks mit Profil,
 Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
 Inbox-Polling und Aufwecken, jeder Slash-Command samt Validierung, Task- und
 Worktree-Events, Profil-Overrides, Dashboard-Gating, Config-/State-Persistenz
@@ -155,7 +155,10 @@ wecken. Das macht die Extension:
 
 Kein Worker blockiert in `inbox(wait_s: 110)` – das würde seine Agent-Loop
 belegen und ließe sich nicht unterbrechen. Bremsen: `wakeCooldownMs`,
-`maxWakesPerTask`, und eine laufende Task wird nie geweckt.
+`maxWakesPerTask`, und eine laufende Task wird nie geweckt. Das Budget gilt pro
+Backlog: neue Nachrichten (oder eine leere Inbox) setzen es zurück, geparkte
+Worker werden weiter geprüft. Ein unveränderter Backlog bleibt geparkt – das
+stoppt die Wake-Schleife.
 
 Gepollt wird nur das Projekt, das AiderDesk gerade anzeigt. Ein Projektwechsel
 nimmt den Poller mit; das verlassene Projekt wird nicht mehr gepollt und bekommt
@@ -325,7 +328,7 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-140 Tests, ESLint + Prettier eingerichtet:
+146 Tests, ESLint + Prettier eingerichtet:
 
 | Suite | Deckt ab |
 |---|---|
@@ -357,6 +360,7 @@ und in der [Extension-README](.aider-desk/extensions/aiderdesk-agent-bus/README.
 | App wirkt hängend, viele Agentenläufe, `woke …` wiederholt sich im Log | Wake-Schleife: Agenten ignorieren ihre Inbox, jedes Wecken ist ein voller Lauf | Agent stummschalten (`/agent-bus-pause`), `wakeCooldownMs` erhöhen, `maxWakesPerTask` senken; 0.2 parkt solche Agenten nach dem Budget |
 | Log zeigt `inbox poll … took N ms` | die Bus-CLI ist langsam, jeder Poll blockiert die Extension | `agentBus.nodeBinary`, Anzahl der Worker und eine mögliche DB-Sperre durch einen anderen Prozess prüfen |
 | App hängt direkt nach einem Projektwechsel | Hintergrund-Polls und Wake-Prompts für das verlassene Projekt, oder eine langsame/volle Platte | 0.2 pollt nur das offene Projekt und pausiert bei `onProjectStopped`; freien Plattenplatz prüfen – Wake-Prompts und `execFile` brauchen ihn |
+| Worker bleiben `blocked`, neue Arbeit startet nicht | Wake-Budget für denselben Backlog aufgebraucht | 0.2 setzt das Budget bei geändertem Backlog zurück; eine neue Nachricht öffnet es, oder `orchestration.maxWakesPerTask` erhöhen |
 | Panel erscheint nicht | das Projekt hat noch kein Team | `/agent-bus-init` ausführen; das Panel wird registriert, sobald Master oder Worker existieren |
 
 ## Lizenz

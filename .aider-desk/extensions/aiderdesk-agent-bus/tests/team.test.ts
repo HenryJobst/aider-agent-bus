@@ -11,6 +11,7 @@ import {
   inferRole,
   joinWorker,
   leaveTeam,
+  parkedWorkers,
   parseSpawnArgs,
   pickStopTarget,
   registerMaster,
@@ -518,4 +519,21 @@ test('stopWorker rejects unknown names', () => {
 
   assert.equal(result.ok, false);
   assert.match(result.error ?? '', /unknown worker/);
+});
+
+test('parkedWorkers lists workers that used up their wake budget', async () => {
+  const { runtime } = makeRuntime();
+  await spawnWorkers(runtime, [
+    { name: 'busy', role: 'developer', task: 'A' },
+    { name: 'fresh', role: 'developer', task: 'B' },
+  ]);
+  const max = runtime.config.orchestration.maxWakesPerTask;
+  runtime.state.updateWorker('task-1', { wakes: max });
+  runtime.state.updateWorker('task-2', { wakes: max + 1, status: 'closed' });
+
+  assert.deepEqual(
+    parkedWorkers(runtime).map((worker) => worker.agentName),
+    ['test-project-busy'],
+    'closed workers are not reported',
+  );
 });

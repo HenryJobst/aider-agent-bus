@@ -22,7 +22,7 @@ systems that already exist.
 
 **v0.2 — usable, not hardened.** Feature-complete for coordination between
 sessions; expect rough edges around merges and anything not listed as verified
-below. Covered by 140 tests: spawning tasks with profile,
+below. Covered by 146 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, every slash command and its validation, task/worktree events,
 profile overrides, dashboard gating, config/state persistence, and a real-CLI
@@ -148,7 +148,9 @@ does that:
 
 No worker blocks in `inbox(wait_s: 110)` — that would occupy its agent loop and
 could not be interrupted. Guards: `wakeCooldownMs`, `maxWakesPerTask`, and a
-running task is never woken.
+running task is never woken. The budget belongs to one backlog: a new message
+(or an emptied inbox) resets it, and parked workers are still checked. An
+unchanged backlog stays parked — that is what stops the wake loop.
 
 Polling is scoped to the project AiderDesk currently shows. Switching projects
 moves the poller with it; the project you left is not polled and gets no wake
@@ -317,7 +319,7 @@ npm run sync    # copy into ~/.aider-desk/extensions (reloads every extension!)
 AiderDesk reloads **all** extensions whenever a file under
 `~/.aider-desk/extensions/` changes. Sync deliberately, not on every save.
 
-140 tests, ESLint + Prettier configured:
+146 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|
@@ -349,6 +351,7 @@ worktree rules) are documented in [`AGENTS.md`](AGENTS.md) and the
 | app feels hung, many agent runs, `woke …` repeats in the log | wake loop: agents ignore their inbox, each wake is a full agent run | mute the agent (`/agent-bus-pause`), raise `wakeCooldownMs`, lower `maxWakesPerTask`; 0.2 parks such agents after the budget |
 | log shows `inbox poll … took N ms` | the bus CLI is slow, so each poll blocks the extension | check `agentBus.nodeBinary`, number of workers, and whether the bus database is locked by another process |
 | app hangs right after switching projects | background polls and wake prompts for the project you left, or a slow/full disk | 0.2 polls only the open project and pauses on `onProjectStopped`; check free disk space — wake prompts and `execFile` both need it |
+| workers stay `blocked` and new work never starts | wake budget used up for the same backlog | 0.2 resets the budget when the backlog changes; sending one new message reopens it, or raise `orchestration.maxWakesPerTask` |
 | panel does not appear | project has no team yet | run `/agent-bus-init`, the panel is registered once a master or worker exists |
 
 ## License

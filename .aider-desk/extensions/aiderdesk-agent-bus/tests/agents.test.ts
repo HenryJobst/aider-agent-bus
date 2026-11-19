@@ -36,6 +36,17 @@ test('agent profiles are registered without a project context', () => {
   ]);
 });
 
+test('the master profile enforces merge order, rebasing and a final check', () => {
+  const master = new AgentBusExtension()
+    .getAgents(globalContext())
+    .find((profile) => profile.id === 'agent-bus-master');
+
+  assert.ok(master);
+  assert.match(master.customInstructions, /one at a time/i);
+  assert.match(master.customInstructions, /[Rr]ebase/);
+  assert.match(master.customInstructions, /before you report/i);
+});
+
 test('every registered profile enables the agent-bus MCP server', () => {
   const extension = new AgentBusExtension();
 

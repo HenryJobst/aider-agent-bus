@@ -146,7 +146,10 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
 4. **Do not fake a bus identity.** The extension writes the registration prompt;
    the agent performs `register` through its MCP tools.
 5. **Never wake a running task.** Guarded by `runningTasks`, `wakeCooldownMs`
-   and `maxWakesPerTask` — keep all three.
+   and `maxWakesPerTask` — keep all three. The budget is per backlog, not per
+   worker lifetime: a new or emptied backlog resets `wakes`, and parked workers
+   are still checked. Without that reset a worker that once hit the budget was
+   parked forever and new work from the master was never delivered.
 6. **Worktrees come from AiderDesk**, not from `git worktree add` in the
    extension. Use `createTask({ workingMode })` / `switchToWorktreeWorkingMode`.
 7. **`no-console` is an error**; log through `context.log`. Type-only imports

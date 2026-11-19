@@ -90,14 +90,17 @@ test('progress after a wake re-enables the next wake', async () => {
 
 test('exhausting the wake budget marks the worker blocked instead of spinning', async () => {
   const { runtime, watcher } = await setup(2);
-  runtime.state.updateWorker('task-1', { wakes: runtime.config.orchestration.maxWakesPerTask });
+  runtime.state.updateWorker('task-1', {
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 2,
+  });
 
   await watcher.checkWorker('task-1');
 
   assert.equal(runtime.state.findByTaskId('task-1')?.status, 'blocked');
 });
 
-test('a parked worker is not polled and warns only once', async () => {
+test('an unchanged backlog stays parked and warns only once', async () => {
   const { runtime, watcher } = await setup(2);
   let busCalls = 0;
   runtime.bus = {
@@ -116,15 +119,91 @@ test('a parked worker is not polled and warns only once', async () => {
     originalLog(message, type);
   }) as typeof runtime.log;
 
-  runtime.state.updateWorker('task-1', { wakes: runtime.config.orchestration.maxWakesPerTask });
+  runtime.state.updateWorker('task-1', {
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 2,
+  });
 
   await watcher.checkWorker('task-1');
   await watcher.checkWorker('task-1');
   await watcher.pollOnce();
 
-  assert.equal(busCalls, 0);
+  assert.equal(busCalls, 3, 'the inbox is still read so new messages are noticed');
   assert.equal(warnings, 1);
   assert.equal(runtime.state.findByTaskId('task-1')?.status, 'blocked');
+});
+
+test('a new backlog reopens a parked worker', async () => {
+  const { runtime, fake, watcher } = await setup(3);
+  runtime.state.updateWorker('task-1', {
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 2,
+    wakeBudgetLogged: true,
+    status: 'blocked',
+  });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  assert.equal(fake.calls.prompts.length, promptsBefore + 1);
+  const worker = runtime.state.findByTaskId('task-1');
+  assert.equal(worker?.wakes, 1, 'the budget starts over for the new backlog');
+  assert.equal(worker?.wakeBudgetLogged, false);
+  assert.equal(worker?.status, 'working');
+});
+
+test('a worker parked without a known backlog gets one fresh try', async () => {
+  // State written by an older version has no lastWakeUnread; such a worker
+  // must not stay parked forever.
+  const { runtime, fake, watcher } = await setup(2);
+  runtime.state.updateWorker('task-1', {
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    status: 'blocked',
+  });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  assert.equal(fake.calls.prompts.length, promptsBefore + 1);
+});
+
+test('an empty inbox clears the budget and unblocks the worker', async () => {
+  const { runtime, fake, watcher } = await setup(0);
+  runtime.state.updateWorker('task-1', {
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 2,
+    wakeBudgetLogged: true,
+    status: 'blocked',
+  });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  const worker = runtime.state.findByTaskId('task-1');
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+  assert.equal(worker?.wakes, 0);
+  assert.equal(worker?.wakeBudgetLogged, false);
+  assert.equal(worker?.lastWakeUnread, undefined);
+  assert.equal(worker?.status, 'idle');
+});
+
+test('the poller notices new messages for a parked worker', async () => {
+  const { runtime, fake, watcher } = await setup(3);
+  runtime.state.updateWorker('task-1', {
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 3,
+    wakeBudgetLogged: true,
+    status: 'blocked',
+  });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.pollOnce();
+  assert.equal(fake.calls.prompts.length, promptsBefore, 'an unchanged backlog stays parked');
+
+  stubBus(runtime, 4);
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, promptsBefore + 1);
 });
 
 test('one poll tick wakes at most one worker', async () => {
@@ -154,7 +233,10 @@ test('the wake cooldown prevents prompt storms', async () => {
 
 test('the wake budget per task is respected', async () => {
   const { runtime, fake, watcher } = await setup(1);
-  runtime.state.updateWorker('task-1', { wakes: runtime.config.orchestration.maxWakesPerTask });
+  runtime.state.updateWorker('task-1', {
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 1,
+  });
   const promptsBefore = fake.calls.prompts.length;
 
   await watcher.checkWorker('task-1');

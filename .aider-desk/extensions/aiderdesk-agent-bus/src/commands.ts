@@ -15,6 +15,7 @@ import {
   inferRole,
   joinWorker,
   leaveTeam,
+  parkedWorkers,
   parseSpawnArgs,
   pickStopTarget,
   registerMaster,
@@ -132,6 +133,15 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
         }
         lines.push(
           `${worker.agentName}  ${worker.role}  ${worker.status}  unread ${unread}  task ${worker.taskId}${worker.worktree ? `  worktree ${worker.worktree}` : ''}`,
+        );
+      }
+
+      const parked = parkedWorkers(runtime);
+      if (parked.length > 0) {
+        lines.push(
+          `${parked.length} worker(s) parked at maxWakesPerTask (${runtime.config.orchestration.maxWakesPerTask}): ${parked
+            .map((worker) => worker.agentName)
+            .join(', ')} — a new message reopens the budget, or raise orchestration.maxWakesPerTask`,
         );
       }
 

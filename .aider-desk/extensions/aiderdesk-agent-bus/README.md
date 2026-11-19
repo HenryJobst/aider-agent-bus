@@ -257,6 +257,11 @@ Guards: `wakeCooldownMs` (default 60 s), `maxWakesPerTask` (default 3), never
 wake a running task, at most one wake per poll tick, and an agent that ignored
 its inbox after a wake is not woken again while the backlog stays the same.
 
+The budget is per backlog, not per worker lifetime: an emptied inbox or a
+changed unread count resets `wakes`, and parked workers are still checked. An
+unchanged backlog stays parked, so new work is delivered without reopening the
+wake loop.
+
 Only the project AiderDesk currently shows is polled. A project switch moves the
 poller with it; the project you left gets no polls and no wake prompts.
 `onProjectStopped` drops its cached runtime. One poll runs at a time, so a slow
@@ -280,7 +285,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 140 tests, node:test + tsx
+npm test          # 146 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo
@@ -296,6 +301,8 @@ What is covered without AiderDesk:
 - worker spawning at the `ProjectContext` seam: task params, profile id,
   worktree fallback, model adoption, worker limit, non-git error message
 - wake-up guards: running task, cooldown, budget, empty inbox, broken CLI
+- wake budget per backlog: new messages reopen a parked worker, an unchanged
+  backlog stays parked, an empty inbox clears the budget
 - polling scope: only the open project, switch moves it, project stop pauses it,
   and overlapping polls are skipped
 - prompt content: identity, scope, isolation and safety rules
@@ -340,6 +347,7 @@ conversation inside AiderDesk. Those are the acceptance steps below.
 | Workers never receive messages | different bus scopes | every call must carry the same `project`/`area`/`team`; see [Why the extension passes the scope explicitly](#why-the-extension-passes-the-scope-explicitly) |
 | Worktree spawn fails with `not a git repository` | project is not a git repo | `git init`, or set `isolation.mode` to `shared` |
 | A worker is woken repeatedly | unread messages are never consumed | the worker must call `inbox`; check `wakeCooldownMs` and `maxWakesPerTask` |
+| A worker stays `blocked` and new work never starts | wake budget used up for the same backlog | the budget resets when the backlog changes; send one new message or raise `orchestration.maxWakesPerTask` |
 | Profiles show `unset` as model | no agent has run yet | set `profiles.provider`/`profiles.model` or run any agent once |
 
 ## Known limitations

@@ -36,6 +36,8 @@ const ROLE_INSTRUCTIONS: Record<TeamRole, string> = {
     'Break the user request into independent work packages, decide dependencies, and delegate through agent-bus tasks.',
     'Use the extension tools to spawn workers, inspect the team and stop workers.',
     'Review worker results yourself; never trust a completion claim without checking the work or a reviewer report.',
+    'Merge worker branches one at a time. Rebase each branch onto the current target branch immediately before merging — a branch validated against an older base is not validated.',
+    'Before you report the team work as done, check that every finished branch is merged or explicitly parked, that no worker sits idle with unread messages, and that no worker is blocked without a decision from you.',
     'Coordinate merges of worker worktrees and ask the user before merging or other irreversible steps.',
     'Keep the team small: do not spawn more workers than the work packages require.',
   ].join('\n'),

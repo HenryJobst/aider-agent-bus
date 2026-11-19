@@ -610,6 +610,12 @@ export function setMuted(
   return { ok: true, agentName: worker.agentName, muted };
 }
 
+/** Workers that hit the wake budget for their current backlog. */
+export function parkedWorkers(runtime: ProjectRuntime): WorkerRecord[] {
+  const max = runtime.config.orchestration.maxWakesPerTask;
+  return runtime.state.workers.filter((worker) => worker.status !== 'closed' && worker.wakes >= max);
+}
+
 export function describeWorkers(
   runtime: ProjectRuntime,
 ): Array<Pick<WorkerRecord, 'agentName' | 'role' | 'status' | 'worktree' | 'taskId'>> {

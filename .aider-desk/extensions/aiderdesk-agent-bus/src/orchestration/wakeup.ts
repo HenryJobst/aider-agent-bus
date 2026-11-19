@@ -75,37 +75,46 @@ export class InboxWatcher {
     // One wake per tick: several simultaneous agent runs are what makes the
     // app feel hung.
     for (const worker of this.runtime.state.workers) {
-      if (
-        worker.status === 'closed' ||
-        worker.status === 'starting' ||
-        worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask
-      ) {
+      if (worker.status === 'closed' || worker.status === 'starting') {
         continue;
       }
-      const before = worker.wakes;
+      // Parked workers are still checked. Their budget only resets when the
+      // backlog changes, and skipping them entirely meant new work from the
+      // master was never noticed.
+      const lastWakeAt = worker.lastWakeAt;
       await this.checkWorker(worker.taskId);
-      if ((this.runtime.state.findByTaskId(worker.taskId)?.wakes ?? before) > before) {
+      if (this.runtime.state.findByTaskId(worker.taskId)?.lastWakeAt !== lastWakeAt) {
         return;
       }
     }
+  }
+
+  /** Fresh budget for a new or emptied backlog; unblocks a parked worker. */
+  private resetWakeBudget(taskId: string): void {
+    const worker = this.runtime.state.findByTaskId(taskId);
+    if (!worker) {
+      return;
+    }
+    if (
+      worker.wakes === 0 &&
+      !worker.wakeBudgetLogged &&
+      worker.lastWakeUnread === undefined &&
+      worker.status !== 'blocked'
+    ) {
+      return;
+    }
+    this.runtime.state.updateWorker(taskId, {
+      wakes: 0,
+      lastWakeUnread: undefined,
+      wakeBudgetLogged: false,
+      ...(worker.status === 'blocked' ? { status: 'idle' } : {}),
+    });
   }
 
   async checkWorker(taskId: string, options: { wake?: boolean } = {}): Promise<number> {
     const worker = this.runtime.state.findByTaskId(taskId);
     if (!worker) {
       return 0;
-    }
-
-    // No point asking the bus every tick for an agent that is already parked.
-    if (worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask) {
-      if (!worker.wakeBudgetLogged) {
-        this.runtime.state.updateWorker(taskId, { status: 'blocked', wakeBudgetLogged: true });
-        this.runtime.log(
-          `${worker.agentName} reached maxWakesPerTask (${worker.wakes}) without consuming its inbox — parked until its messages change`,
-          'warn',
-        );
-      }
-      return this.runtime.unreadByTask.get(taskId) ?? 0;
     }
 
     let unread: number;
@@ -131,6 +140,26 @@ export class InboxWatcher {
       }
       this.runtime.lastInboxError.set(taskId, message);
       return 0;
+    }
+
+    // The budget belongs to one backlog, not to the worker's lifetime. An
+    // untouched backlog stays parked; a new or emptied one gets a fresh budget.
+    // Otherwise a worker that once hit the budget was parked forever and new
+    // work from the master was never delivered.
+    const knownBacklog = typeof worker.lastWakeUnread === 'number';
+    if (unread === 0 || !knownBacklog || unread !== worker.lastWakeUnread) {
+      this.resetWakeBudget(taskId);
+    }
+
+    if (worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask) {
+      if (!worker.wakeBudgetLogged) {
+        this.runtime.state.updateWorker(taskId, { status: 'blocked', wakeBudgetLogged: true });
+        this.runtime.log(
+          `${worker.agentName} reached maxWakesPerTask (${worker.wakes}) for the same backlog — parked until it changes`,
+          'warn',
+        );
+      }
+      return unread;
     }
 
     if (options.wake === false) {
