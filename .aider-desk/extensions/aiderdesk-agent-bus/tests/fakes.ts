@@ -29,6 +29,7 @@ export interface FakeTaskOptions {
   model?: string;
   currentMode?: string;
   failSwitch?: string;
+  failRunPrompt?: string;
 }
 
 export interface FakeContext {
@@ -64,6 +65,9 @@ export function makeTask(id: string, projectDir: string, calls: FakeCalls, optio
   const task = {
     data,
     runPrompt: async (prompt: string, mode?: string) => {
+      if (options.failRunPrompt) {
+        throw new Error(options.failRunPrompt);
+      }
       calls.prompts.push({ id, prompt, mode });
     },
     runPromptInAgent: async (profile: { id: string }, mode: string, prompt: string | null) => {
