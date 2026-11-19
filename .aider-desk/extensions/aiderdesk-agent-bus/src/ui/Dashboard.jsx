@@ -6,7 +6,7 @@
  * per agent, unread badges, and a refresh action. React is globally available.
  */
 (props) => {
-  const { data, ui, icons, executeExtensionAction } = props;
+  const { data, ui, icons, executeExtensionAction, activateTask } = props;
   const { Button } = ui;
   const { FiRefreshCw, FiChevronDown, FiChevronRight, FiBell, FiBellOff } = icons.Fi;
   const [note, setNote] = React.useState(null);
@@ -121,13 +121,29 @@
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            <span className="truncate text-text-primary">{data.master ? data.master.agentName : 'no master'}</span>
+            <span
+              className={
+                'truncate ' + (activateTask ? 'cursor-pointer text-text-primary hover:underline' : 'text-text-primary')
+              }
+              title={activateTask ? 'Open this task' : undefined}
+              onClick={() => data.master && activateTask && activateTask(data.master.taskId)}
+            >
+              {data.master ? data.master.agentName : 'no master'}
+            </span>
           </div>
 
           {workers.map((worker) => (
             <div key={worker.taskId} className="flex items-center gap-1">
               <span className={'h-1.5 w-1.5 shrink-0 rounded-full ' + statusColor(worker.status)} />
-              <span className={'truncate ' + (worker.muted ? 'text-text-secondary' : 'text-text-primary')}>
+              <span
+                className={
+                  'truncate ' +
+                  (worker.muted ? 'text-text-secondary' : 'text-text-primary') +
+                  (activateTask ? ' cursor-pointer hover:underline' : '')
+                }
+                title={activateTask ? 'Open this task' : undefined}
+                onClick={() => activateTask && activateTask(worker.taskId)}
+              >
                 {worker.agentName}
               </span>
               {worker.unread > 0 ? <span className="text-primary">{worker.unread}</span> : null}
