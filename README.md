@@ -321,6 +321,7 @@ cd .aider-desk/extensions/aiderdesk-agent-bus
 npm install
 npm run check   # format:check + lint + typecheck + tests
 npm run mutate:wakeup  # Stryker mutation score for wakeup.ts (slow, separate)
+npm run coverage  # Vitest V8 coverage report
 npm run sync    # copy into ~/.aider-desk/extensions (reloads every extension!)
 ```
 
@@ -341,6 +342,7 @@ AiderDesk reloads **all** extensions whenever a file under
 | wake integrated | real CLI and bus database: a delivered message wakes exactly once, a muted worker never |
 | integration | real CLI in a throwaway `AGENT_BUS_DIR`: two identities register, message, unread counts, scope isolation, dash-safe `inject`, scope-less `remove-member`; skips when the CLI is absent |
 | mutation | Stryker + Vitest runner: `wakeup.ts` 77 % total / 81 % covered, `state.ts` 93 %, `config.ts` 87 %; remaining survivors are mostly log strings, return-value mutants and equivalent guards |
+| coverage | Vitest V8: 89 % statements, 80 % branches, 92 % functions, 89 % lines; weakest file `tools.ts` (34 %) |
 
 Design decisions and pitfalls (explicit bus scope, no blocking inbox waits,
 worktree rules) are documented in [`AGENTS.md`](AGENTS.md) and the

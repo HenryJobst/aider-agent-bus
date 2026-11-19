@@ -119,6 +119,7 @@ cd .aider-desk/extensions/aiderdesk-agent-bus
 npm run check          # format:check + lint + typecheck + tests — run before claiming done
 npm test               # Vitest
 npm run mutate:wakeup  # Stryker mutation score for src/orchestration/wakeup.ts (slow, not part of check)
+npm run coverage       # Vitest V8 coverage (text + html in coverage/)
 npm run typecheck      # tsc --noEmit
 npm run lint           # eslint .
 npm run format         # prettier --write .

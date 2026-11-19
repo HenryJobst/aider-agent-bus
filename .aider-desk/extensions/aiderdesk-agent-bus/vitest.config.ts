@@ -10,5 +10,11 @@ export default defineConfig({
     hookTimeout: 30_000,
     // Leave CPU for AiderDesk and whatever the agents are building.
     maxWorkers: 4,
+    coverage: {
+      provider: 'v8',
+      include: ['index.ts', 'src/**/*.ts'],
+      reporter: ['text', 'html', 'json-summary'],
+      reportsDirectory: 'coverage',
+    },
   },
 });

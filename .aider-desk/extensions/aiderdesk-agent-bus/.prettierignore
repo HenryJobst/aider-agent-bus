@@ -5,3 +5,4 @@ validate-ui.mjs
 *.md
 reports
 .stryker-tmp
+coverage

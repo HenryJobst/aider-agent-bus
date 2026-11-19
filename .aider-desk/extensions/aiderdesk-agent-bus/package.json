@@ -21,6 +21,7 @@
     "@stryker-mutator/vitest-runner": "^10.1.1",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
+    "@vitest/coverage-v8": "^5.1.1",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.14.0",
@@ -38,10 +39,11 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
-    "sync": "rsync -a --exclude node_modules --exclude .git --exclude dist --exclude reports --exclude .stryker-tmp ./ ~/.aider-desk/extensions/aiderdesk-agent-bus/",
+    "sync": "rsync -a --exclude node_modules --exclude .git --exclude dist --exclude reports --exclude .stryker-tmp --exclude coverage ./ ~/.aider-desk/extensions/aiderdesk-agent-bus/",
     "test:watch": "vitest",
     "mutate:wakeup": "stryker run",
     "mutate:state": "stryker run --mutate src/core/state.ts",
-    "mutate:config": "stryker run --mutate src/core/config.ts"
+    "mutate:config": "stryker run --mutate src/core/config.ts",
+    "coverage": "vitest run --coverage"
   }
 }

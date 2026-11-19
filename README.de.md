@@ -333,6 +333,7 @@ cd .aider-desk/extensions/aiderdesk-agent-bus
 npm install
 npm run check   # format:check + lint + typecheck + tests
 npm run mutate:wakeup  # Stryker-Mutationsscore für wakeup.ts (langsam, separat)
+npm run coverage  # Vitest-V8-Coverage-Report
 ```
 
 210 Tests, ESLint + Prettier eingerichtet:
@@ -349,6 +350,7 @@ npm run mutate:wakeup  # Stryker-Mutationsscore für wakeup.ts (langsam, separat
 | Wake integriert | echte CLI und Bus-DB: eine zugestellte Nachricht weckt genau einmal, ein stummer Worker nie |
 | Integration | echte CLI in einem temporären `AGENT_BUS_DIR`: zwei Identitäten registrieren, Nachricht, Unread-Zähler, Scope-Isolation, `inject` mit führendem `--`, `remove-member` ohne Scope; wird ohne CLI übersprungen |
 | Mutation | Stryker + Vitest-Runner: `wakeup.ts` 77 % total / 81 % covered, `state.ts` 93 %, `config.ts` 87 %; übrig bleiben vor allem Log-Strings, Rückgabewert-Mutanten und äquivalente Guards |
+| Coverage | Vitest V8: 89 % Statements, 80 % Branches, 92 % Functions, 89 % Lines; schwächste Datei `tools.ts` (34 %) |
 
 Design-Entscheidungen und Stolperfallen (expliziter Bus-Scope, keine
 blockierenden Inbox-Waits, Worktree-Regeln) stehen in [`AGENTS.md`](AGENTS.md)
