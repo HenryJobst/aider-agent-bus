@@ -304,7 +304,11 @@ AGENTS.md                                  instructions for agents (repo + team 
 cd .aider-desk/extensions/aiderdesk-agent-bus
 npm install
 npm run check   # format:check + lint + typecheck + tests
+npm run sync    # copy into ~/.aider-desk/extensions (reloads every extension!)
 ```
+
+AiderDesk reloads **all** extensions whenever a file under
+`~/.aider-desk/extensions/` changes. Sync deliberately, not on every save.
 
 105 tests, ESLint + Prettier configured:
 

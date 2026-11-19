@@ -40,6 +40,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const TICK_MS = 10_000;
+// Extension reloads create a new class instance. Keeping the timer on the global
+// object means an unloaded instance can never leave a second poller behind.
+const timerHost = globalThis as typeof globalThis & { __agentBusPollTimer?: NodeJS.Timeout };
 
 export default class AgentBusExtension implements Extension {
   static metadata: ExtensionMetadata = {
@@ -59,12 +62,19 @@ export default class AgentBusExtension implements Extension {
 
   async onLoad(context: ExtensionContext): Promise<void> {
     context.log('[agent-bus] extension loaded', 'info');
+    if (timerHost.__agentBusPollTimer) {
+      clearInterval(timerHost.__agentBusPollTimer);
+    }
     this.pollTimer = setInterval(() => void this.pollAll(), TICK_MS);
+    timerHost.__agentBusPollTimer = this.pollTimer;
   }
 
   onUnload(): void {
     if (this.pollTimer) {
       clearInterval(this.pollTimer);
+      if (timerHost.__agentBusPollTimer === this.pollTimer) {
+        delete timerHost.__agentBusPollTimer;
+      }
       this.pollTimer = undefined;
     }
   }

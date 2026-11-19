@@ -165,7 +165,12 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
     (`SETTABLE_KEYS`) from `src/core/config.ts` — never write arbitrary JSON from
     a command, the panel or a tool, and never skip the normalization that clamps
     numbers and rejects unknown enum values.
-13. **Joining is not spawning.** An adopted task keeps its conversation, its
+13. **Syncing triggers a full extension reload.** AiderDesk watches extension
+    folders: every write under `~/.aider-desk/extensions/` reloads *all*
+    extensions, which is expensive (Skill Gallery alone loads thousands of
+    skills). Use `npm run sync` once, when no agent is running — not during
+    iterative edits — and never sync while a worker is mid-run.
+14. **Joining is not spawning.** An adopted task keeps its conversation, its
     working directory and its provider/model; it only gets the role profile so
     the MCP server is enabled. Never recreate or reset an adopted task.
 
