@@ -47,7 +47,7 @@ AGENTS.md                          this file
     src/profiles.ts                master / developer / reviewer / analyst profiles
     src/tools.ts, src/commands.ts  control plane
     src/ui/Dashboard.jsx           dashboard docked in the tasks sidebar
-    tests/                         node:test suite + fakes + real-CLI integration test
+    tests/                         Vitest suite + fakes + real-CLI integration test
 ```
 
 The extension is **also installed globally** at
@@ -117,7 +117,7 @@ is the short mapping.
 cd .aider-desk/extensions/aiderdesk-agent-bus
 
 npm run check          # format:check + lint + typecheck + tests — run before claiming done
-npm test               # node:test via tsx
+npm test               # Vitest
 npm run typecheck      # tsc --noEmit
 npm run lint           # eslint .
 npm run format         # prettier --write .

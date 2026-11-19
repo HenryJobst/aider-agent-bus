@@ -24,9 +24,9 @@
     "globals": "^17.14.0",
     "prettier": "^3.10.1",
     "sucrase": "^3.35.1",
-    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.73.0"
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.1"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -34,8 +34,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --import tsx --test tests/*.test.ts",
+    "test": "vitest run",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
-    "sync": "rsync -a --exclude node_modules --exclude .git --exclude dist ./ ~/.aider-desk/extensions/aiderdesk-agent-bus/"
+    "sync": "rsync -a --exclude node_modules --exclude .git --exclude dist ./ ~/.aider-desk/extensions/aiderdesk-agent-bus/",
+    "test:watch": "vitest"
   }
 }

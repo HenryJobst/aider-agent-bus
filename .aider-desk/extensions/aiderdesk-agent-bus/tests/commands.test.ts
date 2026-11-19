@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import test from 'node:test';
+import { test } from 'vitest';
 
 import type { CommandDefinition } from '@aiderdesk/extensions';
 

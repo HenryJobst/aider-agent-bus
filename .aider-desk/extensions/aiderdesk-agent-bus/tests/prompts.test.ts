@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { test } from 'vitest';
 
 import { inboxWakePrompt, masterRegistrationPrompt, registrationPrompt } from '../src/bus/prompts.js';
 import type { IdentityContext } from '../src/bus/prompts.js';

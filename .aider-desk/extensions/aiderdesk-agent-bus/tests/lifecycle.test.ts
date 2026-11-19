@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import test from 'node:test';
+import { test } from 'vitest';
 
 import type { AgentProfile } from '@aiderdesk/extensions';
 

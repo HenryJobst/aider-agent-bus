@@ -295,7 +295,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 178 tests, node:test + tsx
+npm test          # 178 tests, Vitest
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo

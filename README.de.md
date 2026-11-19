@@ -322,7 +322,7 @@ AGENTS.md                                  Anweisungen für Agenten (Repo + Team
   src/{bus,core,orchestration}/            BusClient, Config, State, Spawn, Wake-up
   src/{profiles,tools,commands}.ts         Agent-Profile und Control Plane
   src/ui/Dashboard.jsx                     Dashboard in der Task-Sidebar
-  tests/                                   node:test-Suite + Fakes + Real-CLI-Integration
+  tests/                                   Vitest-Suite + Fakes + Real-CLI-Integration
   README.md                                Referenz der Extension
 ```
 

@@ -13,7 +13,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'node:test';
+import { test } from 'vitest';
 
 import { BusClient } from '../src/bus/client.js';
 
