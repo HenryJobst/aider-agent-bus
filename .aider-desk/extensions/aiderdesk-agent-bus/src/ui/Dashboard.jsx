@@ -24,6 +24,17 @@
   };
 
   const workers = data.workers || [];
+  const settings = data.settings || null;
+
+  const setConfig = async (key, value) => {
+    setNote(`${key} → ${value}…`);
+    const result = await executeExtensionAction('set-config', key, value);
+    setNote(
+      result && result.ok
+        ? `${key} = ${JSON.stringify(result.value)}`
+        : `${key}: ${(result && result.error) || 'failed'}`,
+    );
+  };
   const active = workers.filter((worker) => worker.status === 'working').length;
   const unread = workers.reduce((sum, worker) => sum + (worker.unread || 0), 0);
 
@@ -106,6 +117,36 @@
           ))}
 
           {workers.length === 0 ? <span className="text-text-secondary">No workers</span> : null}
+        </div>
+      ) : null}
+
+      {expanded && settings ? (
+        <div className="flex flex-wrap items-center gap-1">
+          <Button
+            size="xs"
+            variant="outline"
+            title="Board tasks or message-only coordination"
+            onClick={() => setConfig('orchestration.trackTasks', String(!settings.trackTasks))}
+          >
+            {settings.trackTasks ? 'board tasks' : 'messages only'}
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            title="Allow direct worker-to-worker messages"
+            onClick={() => setConfig('orchestration.peerToPeerEnabled', String(!settings.peerToPeer))}
+          >
+            p2p {settings.peerToPeer ? 'on' : 'off'}
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            disabled={settings.anyRunning}
+            title={settings.anyRunning ? 'Stop the workers first' : 'Isolation for new and adopted tasks'}
+            onClick={() => setConfig('isolation.mode', settings.isolation === 'worktree' ? 'shared' : 'worktree')}
+          >
+            {settings.isolation}
+          </Button>
         </div>
       ) : null}
 

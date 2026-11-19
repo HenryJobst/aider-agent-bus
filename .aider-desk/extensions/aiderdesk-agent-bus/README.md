@@ -95,9 +95,9 @@ Commands (run in the master task):
 | `/agent-bus-team` | master, workers, roles, task ids, worktrees, unread counts |
 | `/agent-bus-doctor` | whether each identity is actually registered on the bus, plus `mcp:` state |
 | `/agent-bus-config [key] [value]` | show effective settings or change one validated key |
-| `/agent-bus-spawn <name> <developer\|reviewer\|analyst> <work package>` | create and start a worker |
+| `/agent-bus-spawn <name> [role] <work package>` | create and start a worker; role defaults to developer |
 | `/agent-bus-join [name] [role]` | adopt **this** task; name and role default from the task |
-| `/agent-bus-stop <name or task id>` | interrupt a worker, keep its registration |
+| `/agent-bus-stop [name or task id]` | interrupt a worker; without an argument the only running one |
 | `/agent-bus-remove <name or task id>` | remove a participant: bus registration and wake-ups go, the task keeps running |
 
 Extension tools (master profile only; other profiles get `agent_bus_get_team`):
@@ -113,7 +113,9 @@ Extension tools (master profile only; other profiles get `agent_bus_get_team`):
 
 Dashboard (`tasks-sidebar-bottom`): a compact strip at the bottom of the tasks
 sidebar with status dots, unread badges, per-worker `stop` and `×` (remove), collapse
-and a refresh action that reports how many identities are registered on the bus. It is only registered for projects that already have a team
+and a refresh action that reports how many identities are registered on the bus.
+The expanded panel also toggles board vs. message-only coordination, peer-to-peer
+messages and the isolation mode (the last one only while no worker runs). It is only registered for projects that already have a team
 (master or workers); an uninitialised project does not get a floating panel.
 It is docked, not a floating window, so it does not cover the chat.
 

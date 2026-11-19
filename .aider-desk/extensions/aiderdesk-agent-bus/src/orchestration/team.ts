@@ -66,6 +66,47 @@ export function inferRole(taskName: string | undefined, agentProfileId?: string)
   return 'developer';
 }
 
+const EXPLICIT_ROLES = new Set(['developer', 'reviewer', 'analyst', 'master', 'review', 'qa', 'plan', 'planner']);
+
+export interface SpawnArgs {
+  name: string;
+  role: string;
+  task: string;
+}
+
+/**
+ * `/agent-bus-spawn <name> [role] <work package>` — the role is optional and
+ * defaults to developer. The first token is always the worker name.
+ */
+export function parseSpawnArgs(args: string[]): { ok: true; value: SpawnArgs } | { ok: false; error: string } {
+  if (args.length < 2) {
+    return { ok: false, error: 'Usage: /agent-bus-spawn <name> [developer|reviewer|analyst] <work package>' };
+  }
+
+  const [name, second, ...rest] = args;
+  if (EXPLICIT_ROLES.has(second.toLowerCase())) {
+    const task = rest.join(' ').trim();
+    if (!task) {
+      return { ok: false, error: 'Work package missing after the role.' };
+    }
+    return { ok: true, value: { name, role: second, task } };
+  }
+
+  return { ok: true, value: { name, role: 'developer', task: args.slice(1).join(' ').trim() } };
+}
+
+/** `/agent-bus-stop` without an argument: stop the only running worker. */
+export function pickStopTarget(workers: WorkerRecord[]): { name?: string; error?: string } {
+  const running = workers.filter((worker) => worker.status === 'working' || worker.status === 'starting');
+  if (running.length === 1) {
+    return { name: running[0].agentName };
+  }
+  if (running.length === 0) {
+    return { error: 'no worker is running' };
+  }
+  return { error: `several workers are running: ${running.map((worker) => worker.agentName).join(', ')}` };
+}
+
 export function agentNameFor(runtime: ProjectRuntime, name: string): string {
   const base = `${slugify(runtime.config.agentBus.project) || 'project'}-${slugify(name) || 'worker'}`;
   const taken = new Set(runtime.state.workers.map((worker) => worker.agentName));

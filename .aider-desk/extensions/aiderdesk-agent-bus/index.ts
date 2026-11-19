@@ -26,7 +26,7 @@ import type {
 } from '@aiderdesk/extensions';
 
 import { createTeamCommands } from './src/commands.js';
-import { configMtime, configPath } from './src/core/config.js';
+import { configMtime, configPath, setConfigValue } from './src/core/config.js';
 import { ProjectRuntime } from './src/core/runtime.js';
 import { removeWorker, stopWorker } from './src/orchestration/team.js';
 import { checkRegistration, collectHealth } from './src/orchestration/doctor.js';
@@ -291,6 +291,12 @@ export default class AgentBusExtension implements Extension {
         error: runtime.lastInboxError.get(worker.taskId) ?? null,
       })),
       modelDefaults: runtime.modelDefaults,
+      settings: {
+        trackTasks: runtime.config.orchestration.trackTasks,
+        peerToPeer: runtime.config.orchestration.peerToPeerEnabled,
+        isolation: runtime.config.isolation.mode,
+        anyRunning: runtime.state.workers.some((worker) => worker.status === 'working' || worker.status === 'starting'),
+      },
     };
   }
 
@@ -339,6 +345,24 @@ export default class AgentBusExtension implements Extension {
         if (!result.ok) {
           runtime.log(`stop failed for "${target}": ${result.error ?? 'unknown error'}`, 'warn');
         }
+        context.triggerUIDataRefresh(DASHBOARD_ID);
+        return result;
+      }
+      case 'set-config': {
+        const key = String(args[0] ?? '');
+        const value = String(args[1] ?? '');
+        const busy = runtime.state.workers.some(
+          (worker) => worker.status === 'working' || worker.status === 'starting',
+        );
+        if (key === 'isolation.mode' && busy) {
+          return { ok: false, error: 'stop the running workers before changing isolation' };
+        }
+        const result = setConfigValue(runtime.projectDir, key, value);
+        if (!result.ok) {
+          runtime.log(`config change rejected: ${result.error ?? 'unknown error'}`, 'warn');
+          return result;
+        }
+        runtime.reload();
         context.triggerUIDataRefresh(DASHBOARD_ID);
         return result;
       }

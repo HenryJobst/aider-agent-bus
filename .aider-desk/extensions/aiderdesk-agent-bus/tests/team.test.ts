@@ -4,11 +4,14 @@ import test from 'node:test';
 import type { TaskContext } from '@aiderdesk/extensions';
 
 import type { BusClient } from '../src/bus/client.js';
+import type { WorkerRecord } from '../src/core/state.js';
 import {
   deriveJoinName,
   ensureMaster,
   inferRole,
   joinWorker,
+  parseSpawnArgs,
+  pickStopTarget,
   registerMaster,
   removeWorker,
   spawnWorkers,
@@ -253,6 +256,32 @@ test('join infers the role from the profile first, then the task name', () => {
   assert.equal(inferRole('QA Integration', undefined), 'reviewer');
   assert.equal(inferRole('Recherche Pipeline', undefined), 'analyst');
   assert.equal(inferRole('Backend API', undefined), 'developer');
+});
+
+test('spawn treats an omitted role as developer', () => {
+  assert.deepEqual(parseSpawnArgs(['backend', 'Implement', 'the', 'API']), {
+    ok: true,
+    value: { name: 'backend', role: 'developer', task: 'Implement the API' },
+  });
+  assert.deepEqual(parseSpawnArgs(['backend', 'reviewer', 'Review the API']), {
+    ok: true,
+    value: { name: 'backend', role: 'reviewer', task: 'Review the API' },
+  });
+  assert.equal(parseSpawnArgs(['backend']).ok, false);
+  assert.equal(parseSpawnArgs(['backend', 'reviewer']).ok, false);
+});
+
+test('stop without an argument only acts when exactly one worker runs', () => {
+  const worker = (agentName: string, status: string): WorkerRecord =>
+    ({ agentName, taskId: agentName, status }) as WorkerRecord;
+
+  assert.equal(pickStopTarget([]).name, undefined);
+  assert.equal(pickStopTarget([worker('a', 'idle')]).name, undefined);
+  assert.equal(pickStopTarget([worker('a', 'working'), worker('b', 'idle')]).name, 'a');
+  assert.match(
+    pickStopTarget([worker('a', 'working'), worker('b', 'starting')]).error ?? '',
+    /several workers are running/,
+  );
 });
 
 test('join honours the configured worktree isolation', async () => {

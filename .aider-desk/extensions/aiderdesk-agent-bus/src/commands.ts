@@ -13,6 +13,8 @@ import {
   ensureMaster,
   inferRole,
   joinWorker,
+  parseSpawnArgs,
+  pickStopTarget,
   registerMaster,
   removeWorker,
   spawnWorkers,
@@ -164,14 +166,15 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     name: 'agent-bus-spawn',
     description: 'Spawn a worker: /agent-bus-spawn <name> <developer|reviewer|analyst> <work package>',
     execute: async (args, context) => {
-      const [name, role, ...taskWords] = args;
-      if (!name || !role || taskWords.length === 0) {
-        reportError(context, 'Usage: /agent-bus-spawn <name> <developer|reviewer|analyst> <work package>');
+      const parsed = parseSpawnArgs(args);
+      if (!parsed.ok) {
+        reportError(context, parsed.error);
         return;
       }
+      const { name, role, task } = parsed.value;
       const runtime = getRuntime(context);
       ensureMaster(runtime, context.getTaskContext());
-      const [outcome] = await spawnWorkers(runtime, [{ name, role, task: taskWords.join(' ') }]);
+      const [outcome] = await spawnWorkers(runtime, [{ name, role, task }]);
       if (!outcome?.ok) {
         reportError(context, `spawn failed: ${outcome?.error ?? 'unknown error'}`);
         return;
@@ -213,18 +216,18 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     name: 'agent-bus-stop',
     description: 'Interrupt a worker: /agent-bus-stop <worker name or task id>',
     execute: async (args, context) => {
-      const target = args[0];
-      if (!target) {
-        reportError(context, 'Usage: /agent-bus-stop <worker name or task id>');
+      const runtime = getRuntime(context);
+      const choice = args[0] ? { name: args[0] } : pickStopTarget(runtime.state.workers);
+      if (!choice.name) {
+        reportError(context, choice.error ?? 'nothing to stop');
         return;
       }
-      const runtime = getRuntime(context);
-      const result = stopWorker(runtime, target);
+      const result = stopWorker(runtime, choice.name);
       if (!result.ok) {
         reportError(context, result.error ?? 'stop failed');
         return;
       }
-      report(context, `interrupted ${target}`);
+      report(context, `interrupted ${choice.name}`);
     },
   };
 
@@ -232,12 +235,18 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     name: 'agent-bus-remove',
     description: 'Remove a participant from the team: /agent-bus-remove <worker name or task id>',
     execute: async (args, context) => {
+      const runtime = getRuntime(context);
       const target = args[0];
       if (!target) {
-        reportError(context, 'Usage: /agent-bus-remove <worker name or task id>');
+        const names = runtime.state.workers.map((worker) => worker.agentName);
+        reportError(
+          context,
+          names.length > 0
+            ? `Usage: /agent-bus-remove <name>. Participants: ${names.join(', ')}`
+            : 'No participants to remove.',
+        );
         return;
       }
-      const runtime = getRuntime(context);
       const result = await removeWorker(runtime, target);
       if (!result.ok) {
         reportError(context, result.error ?? 'remove failed');

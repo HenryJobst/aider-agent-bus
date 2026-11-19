@@ -69,12 +69,12 @@ project only the global one is loaded.
 | Command | Effect |
 |---|---|
 | `/agent-bus-init` | write config, register this task as master, queue its bus registration, print `bus:` and `mcp:` health |
-| `/agent-bus-spawn <name> <role> <task>` | new task + role profile + worktree + registration prompt |
+| `/agent-bus-spawn <name> [role] <task>` | new task + role profile + worktree + registration prompt |
 | `/agent-bus-join [name] [role]` | adopt the current task; defaults: task name as identity, role from profile or task name |
 | `/agent-bus-team` | roster, roles, task ids, worktrees, unread counts |
 | `/agent-bus-doctor` | bus-side truth: registered / NOT registered per identity |
 | `/agent-bus-config [key] [value]` | show or change one validated setting without editing JSON |
-| `/agent-bus-stop <name>` | interrupt a worker, keep the registration |
+| `/agent-bus-stop [name]` | interrupt a worker (default: the only running one), keep the registration |
 | `/agent-bus-remove <name>` | remove a participant (bus registration + wake-ups); task stays open |
 
 Tools (master profile only, others see `agent_bus_get_team`):
