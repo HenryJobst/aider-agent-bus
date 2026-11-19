@@ -238,9 +238,15 @@ main repo   → scoped: repo
 worktree    → scoped: repo-wt-backend
 ```
 
-Every CLI call therefore passes `--project`, `--area` and `--team` explicitly.
-Keep that behaviour: removing it silently splits the team into separate bus
-scopes.
+Every CLI call that supports them therefore passes `--project`, `--area` and
+`--team` explicitly. Keep that behaviour: removing it silently splits the team
+into separate bus scopes.
+
+Three subcommands take **no** scope flags (verified against CLI 0.43.0):
+`now`, `remove-member` and `inject`. `now` and `remove-member` work on the
+globally unique agent name, so the client calls them without scope flags.
+`inject` has no scope at all; `BusClient.inject()` therefore goes through `send
+--from human`, which is scoped and carries the body as an option value.
 
 ## Wake-up
 
@@ -289,7 +295,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 154 tests, node:test + tsx
+npm test          # 161 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo
@@ -301,7 +307,9 @@ What is covered without AiderDesk:
 - state join table, persistence and recovery
 - inbox-status normalization across agent-bus output shapes
 - CLI argument construction against a fake `agent-bus` binary, including the
-  missing-binary error
+  missing-binary error and the subcommands that take no scope flags
+- the real CLI for `inject` (a body starting with `--`), `now` and
+  `remove-member`, in a throwaway bus directory
 - worker spawning at the `ProjectContext` seam: task params, profile id,
   worktree fallback, model adoption, worker limit, non-git error message
 - wake-up guards: running task, cooldown, budget, empty inbox, broken CLI
@@ -313,8 +321,10 @@ What is covered without AiderDesk:
 - tool exposure: full control plane for the master, read-only for other profiles
 - every slash command against the fake host: defaults, validation errors,
   confirmation flow of `reset`, config clamping and the bus calls they trigger
-- lifecycle events: task closed, worktree created and merged, profile overrides,
-  learned provider defaults, and the poll timer surviving an extension reload
+- lifecycle events: task closed and deleted (identity removed), orphaned
+  records reconciled on project start, worktree created and merged, profile
+  overrides, learned provider defaults, and the poll timer surviving an
+  extension reload
 - panel gating: no component without a team, one docked component with one
 
 `tests/host.ts` is the shared fake host for those last three groups: it

@@ -227,3 +227,57 @@ test('a master run is tracked in the join table and returns to idle', async () =
   };
   assert.equal(view.master?.status, 'idle');
 });
+
+test('deleting a worker task removes its identity from the join table', async () => {
+  const h = makeHost();
+  await spawnBackend(h);
+
+  await h.ext.onTaskDeleted({ task: { id: 'task-1' } } as never, h.context);
+
+  const view = (await h.ext.getUIExtensionData('agent-bus-dashboard', h.context)) as {
+    workers: unknown[];
+  };
+  assert.equal(view.workers.length, 0);
+  assert.ok(
+    h.busCalls().some((call) => call.startsWith('remove-member test-project-backend')),
+    'the bus registration is removed too',
+  );
+});
+
+test('deleting the master task clears the master', async () => {
+  const h = makeHost();
+  h.setCurrentTask(h.createTask('master-task', 'pm'));
+  await h.ext
+    .getCommands(h.context)
+    .find((c) => c.name === 'agent-bus-init')!
+    .execute([], h.context);
+
+  await h.ext.onTaskDeleted({ task: { id: 'master-task' } } as never, h.context);
+
+  const view = (await h.ext.getUIExtensionData('agent-bus-dashboard', h.context)) as {
+    master: unknown;
+  };
+  assert.equal(view.master, null);
+});
+
+test('a blocked deletion leaves the worker alone', async () => {
+  const h = makeHost();
+  await spawnBackend(h);
+
+  await h.ext.onTaskDeleted({ task: { id: 'task-1' }, blocked: true } as never, h.context);
+
+  const view = (await h.ext.getUIExtensionData('agent-bus-dashboard', h.context)) as {
+    workers: unknown[];
+  };
+  assert.equal(view.workers.length, 1);
+});
+
+test('a project start closes workers whose task no longer exists', async () => {
+  const h = makeHost();
+  await spawnBackend(h);
+  h.tasks.delete('task-1');
+
+  await h.ext.onProjectStarted({ baseDir: h.projectDir } as never, h.context);
+
+  assert.equal((await workerView(h)).status, 'closed');
+});

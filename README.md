@@ -22,7 +22,7 @@ systems that already exist.
 
 **v0.2 — usable, not hardened.** Feature-complete for coordination between
 sessions; expect rough edges around merges and anything not listed as verified
-below. Covered by 154 tests: spawning tasks with profile,
+below. Covered by 161 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, every slash command and its validation, task/worktree events,
 profile overrides, dashboard gating, config/state persistence, and a real-CLI
@@ -323,7 +323,7 @@ npm run sync    # copy into ~/.aider-desk/extensions (reloads every extension!)
 AiderDesk reloads **all** extensions whenever a file under
 `~/.aider-desk/extensions/` changes. Sync deliberately, not on every save.
 
-154 tests, ESLint + Prettier configured:
+161 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|
@@ -332,10 +332,10 @@ AiderDesk reloads **all** extensions whenever a file under
 | wake-up | running task, cooldown, budget, no-progress parking, empty inbox, broken CLI |
 | host | tools, panel data and every panel action (refresh, stop, stop-all, mute, remove, set-config) against a fake host context |
 | commands | every `/agent-bus-*` command: argument parsing, defaults, confirmations, clamping and the bus calls they trigger |
-| lifecycle | task-closed and worktree events, profile overrides and learned defaults, UI gating, poll-timer replacement on reload |
+| lifecycle | task-closed and deletion, orphan reconciliation on project start, worktree events, profile overrides and learned defaults, UI gating, poll-timer replacement on reload |
 | drift | metadata version vs `package.json`, full profile shape, command parity between the English and German README |
 | wake integrated | real CLI and bus database: a delivered message wakes exactly once, a muted worker never |
-| integration | real CLI in a throwaway `AGENT_BUS_DIR`: two identities register, message, unread counts, scope isolation; skips when the CLI is absent |
+| integration | real CLI in a throwaway `AGENT_BUS_DIR`: two identities register, message, unread counts, scope isolation, dash-safe `inject`, scope-less `now`/`remove-member`; skips when the CLI is absent |
 
 Design decisions and pitfalls (explicit bus scope, no blocking inbox waits,
 worktree rules) are documented in [`AGENTS.md`](AGENTS.md) and the

@@ -112,7 +112,7 @@ test('send builds a scoped message call', async () => {
   assert.ok(call.includes('hello'));
 });
 
-test('inject and log carry the scope', async () => {
+test('inject goes through send so the scope is explicit, log carries the scope', async () => {
   const { path, log } = fakeBinary();
   process.env.FAKE_BUS_LOG = log;
 
@@ -121,11 +121,41 @@ test('inject and log carry the scope', async () => {
   await client.log(5);
 
   const calls = readCalls(log);
-  assert.deepEqual(calls[0].slice(0, 5), ['inject', '--from', 'human', '--to', 'p-backend']);
+  assert.deepEqual(calls[0].slice(0, 6), ['send', '--from', 'human', '--to', 'p-backend', '--message']);
   assert.ok(calls[0].includes('hello'));
   assert.ok(calls[0].includes('--project') && calls[0].includes('p'));
+  assert.ok(calls[0].includes('--team') && calls[0].includes('t'));
   assert.ok(calls[1].includes('log'));
   assert.ok(calls[1].includes('5'));
+  assert.ok(calls[1].includes('--project') && calls[1].includes('p'));
+});
+
+test('status and removeMember rely on the globally unique agent name', async () => {
+  const { path, log } = fakeBinary();
+  process.env.FAKE_BUS_LOG = log;
+
+  const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: path });
+  await client.status('p-backend', 'working', 'halfway');
+  await client.removeMember('p-backend');
+
+  const calls = readCalls(log);
+  assert.deepEqual(calls[0].slice(0, 4), ['now', '--agent', 'p-backend', '--status']);
+  assert.ok(calls[0].includes('halfway'));
+  assert.ok(!calls[0].includes('--project'), 'now has no scope options');
+  assert.deepEqual(calls[1], ['remove-member', 'p-backend']);
+});
+
+test('inject keeps a message that looks like a flag as the option value', async () => {
+  const { path, log } = fakeBinary();
+  process.env.FAKE_BUS_LOG = log;
+
+  const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: path });
+  await client.inject('p-backend', '--delete-everything');
+
+  const [call] = readCalls(log);
+  const messageFlag = call.indexOf('--message');
+  assert.ok(messageFlag > 0, 'the body is passed as an option value');
+  assert.equal(call[messageFlag + 1], '--delete-everything');
 });
 
 test('a non-zero exit surfaces the CLI message, not the shell command', async () => {

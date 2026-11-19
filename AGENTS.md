@@ -132,10 +132,13 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
 
 1. **Do not build a second message store.** agent-bus is the source of truth for
    messages, tasks and agent state. `agent-bus-state.json` is a join table only.
-2. **Pass the scope explicitly.** Every CLI call carries `project`, optional
-   `area` and `team`. agent-bus derives `project` from the `.git` folder name,
-   and a worktree resolves to a different name (`repo` vs `repo-wt-backend`).
-   Dropping the flags silently splits the team.
+2. **Pass the scope explicitly.** Every CLI call that accepts them carries
+   `project`, optional `area` and `team`. agent-bus derives `project` from the
+   `.git` folder name, and a worktree resolves to a different name (`repo` vs
+   `repo-wt-backend`). Dropping the flags silently splits the team.
+   Exception (CLI 0.43.0): `now`, `remove-member` and `inject` take no scope
+   flags. `now`/`remove-member` rely on the globally unique agent name;
+   `inject` is unscoped, so the client sends human messages through `send`.
 3. **No blocking inbox waits.** Wake-up is `inbox-status --json` + `runPrompt`.
    A worker must never sit in `inbox(wait_s: 110)`.
    Poll only the project AiderDesk currently shows (`onProjectStarted`,
@@ -279,6 +282,9 @@ the CLI as a substitute, do not edit files by hand, and do not claim readiness.
   keep getting woken, you are not consuming your inbox.
 - Closing your task marks your registration `closed`; messages stay on the bus
   and are delivered when the task runs again.
+- Deleting your task removes the identity for good: the bus registration and the
+  join-table record go away. A project start also reconciles records whose task
+  no longer exists, so a missed deletion event cannot leave a ghost worker.
 - An already running task can be adopted later (`/agent-bus-join` or
   `agent_bus_join_worker`). You then receive a registration prompt mid-task:
   register, read your inbox, and continue your current work — do not restart it.

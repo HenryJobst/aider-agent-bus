@@ -159,7 +159,14 @@ test('say relays a human message to the resolved identity', async () => {
   await run(h, 'agent-bus-say', 'backend', 'please', 'report');
 
   assert.equal(output(h), 'sent to test-project-backend: please report');
-  assert.ok(h.busCalls().some((call) => call.startsWith('inject --from human --to test-project-backend')));
+  assert.ok(
+    h
+      .busCalls()
+      .some(
+        (call) =>
+          call.startsWith('send --from human --to test-project-backend') && call.includes('--message please report'),
+      ),
+  );
 });
 
 test('say without a message prints the usage', async () => {

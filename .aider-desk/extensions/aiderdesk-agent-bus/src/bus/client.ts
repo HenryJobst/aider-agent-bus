@@ -204,6 +204,7 @@ export class BusClient {
     return stdout.trim();
   }
 
+  /** `now` takes no scope flags; agent names are globally unique on the bus. */
   async status(agentName: string, status: string, note?: string): Promise<string> {
     const args = ['now', '--agent', agentName, '--status', status];
     if (note) {
@@ -213,16 +214,25 @@ export class BusClient {
     return stdout.trim();
   }
 
-  /** Removes an agent from the bus registry; message and task history stay. */
+  /**
+   * `remove-member` takes no scope flags either: the roster is keyed by the
+   * globally unique agent name.
+   */
   async removeMember(agentName: string): Promise<string> {
-    const { stdout } = await this.run(['remove-member', agentName, ...this.scopeArgs()]);
+    const { stdout } = await this.run(['remove-member', agentName]);
     return stdout.trim();
   }
 
-  /** Human relay: delivers a message without pretending to be a team agent. */
+  /**
+   * Human relay: delivers a message without pretending to be a team agent.
+   *
+   * Implemented through `send` because `inject` accepts no scope flags — it
+   * would write into whatever scope the CLI derives from its cwd instead of the
+   * configured project/team. `send` also carries the body as an option value,
+   * so a message starting with `--` is not parsed as a flag.
+   */
   async inject(to: string, message: string, from = 'human'): Promise<string> {
-    const { stdout } = await this.run(['inject', '--from', from, '--to', to, ...this.scopeArgs(), message]);
-    return stdout.trim();
+    return this.send(from, to, message);
   }
 
   /** Recent bus traffic for quick diagnosis. */

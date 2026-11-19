@@ -21,6 +21,7 @@ import type {
   ProjectStartedEvent,
   ProjectStoppedEvent,
   TaskClosedEvent,
+  TaskDeletedEvent,
   ToolDefinition,
   UIComponentDefinition,
   WorktreeCreatedEvent,
@@ -76,8 +77,31 @@ export default class AgentBusExtension implements Extension {
     timerHost.__agentBusPollTimer = this.pollTimer;
   }
 
-  async onProjectStarted(event: ProjectStartedEvent, _context: ExtensionContext): Promise<void> {
+  async onProjectStarted(event: ProjectStartedEvent, context: ExtensionContext): Promise<void> {
     this.activeProjectDir = event.baseDir;
+    await this.reconcileProject(context);
+  }
+
+  /**
+   * Drops records whose task no longer exists. Deletion events are not always
+   * delivered (external folder changes, an app restart), and a stale record
+   * keeps the poller and the panel busy with a task nobody can answer.
+   */
+  private async reconcileProject(context: ExtensionContext): Promise<void> {
+    const runtime = this.tryRuntime(context);
+    if (!runtime) {
+      return;
+    }
+    try {
+      const live = new Set((await runtime.projectContext.getTasks()).map((task) => task.id));
+      runtime.state.reconcile(live);
+      if (runtime.state.master && !live.has(runtime.state.master.taskId)) {
+        runtime.state.clearMaster();
+        runtime.log('the master task no longer exists; cleared the master identity', 'warn');
+      }
+    } catch (error) {
+      runtime.log(`could not reconcile tasks: ${error instanceof Error ? error.message : String(error)}`, 'warn');
+    }
   }
 
   async onProjectStopped(event: ProjectStoppedEvent, context: ExtensionContext): Promise<void> {
@@ -296,6 +320,39 @@ export default class AgentBusExtension implements Extension {
       return;
     }
     runtime.state.updateWorker(event.task.id, { status: 'closed' });
+  }
+
+  async onTaskDeleted(event: TaskDeletedEvent, context: ExtensionContext): Promise<void> {
+    const runtime = this.tryRuntime(context);
+    if (!runtime || event.blocked) {
+      return;
+    }
+    const taskId = event.task.id;
+    runtime.runningTasks.delete(taskId);
+    runtime.unreadByTask.delete(taskId);
+    runtime.lastInboxError.delete(taskId);
+
+    const master = runtime.state.master;
+    if (master?.taskId === taskId) {
+      try {
+        await runtime.bus.removeMember(master.agentName);
+      } catch (error) {
+        runtime.log(
+          `bus registration of ${master.agentName} could not be removed: ${error instanceof Error ? error.message : String(error)}`,
+          'warn',
+        );
+      }
+      runtime.state.clearMaster();
+      runtime.log(`master task ${taskId} was deleted; cleared ${master.agentName}`, 'warn');
+      context.triggerUIComponentsReload();
+      return;
+    }
+
+    const worker = runtime.state.findByTaskId(taskId);
+    if (worker) {
+      await removeWorker(runtime, worker.agentName);
+      context.triggerUIComponentsReload();
+    }
   }
 
   async onWorktreeCreated(event: WorktreeCreatedEvent, context: ExtensionContext): Promise<void> {

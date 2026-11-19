@@ -106,3 +106,24 @@ test('two identities register, message and see unread state', { skip: !available
   await other.register({ name: `${project}-other`, role: 'developer', capabilities: [] });
   assert.equal((await other.inboxStatus(`${project}-other`)).unread, 0);
 });
+
+test('inject delivers a message body that starts with a dash', { skip: !available }, async () => {
+  const dataDir = mkdtempSync(join(tmpdir(), 'agent-bus-it-'));
+  const project = `it-${Date.now().toString(36)}`;
+  const team = `${project}-team`;
+  const alpha = client(project, team, dataDir, dataDir);
+  const agent = `${project}-alpha`;
+
+  await alpha.register({ name: agent, role: 'developer', capabilities: [] });
+
+  // Without the `--` terminator the CLI reads the body as an option.
+  await alpha.inject(agent, '--not-a-flag');
+
+  assert.equal((await alpha.inboxStatus(agent)).unread, 1);
+
+  // These two subcommands take no scope flags; the agent name has to be enough.
+  await alpha.status(agent, 'working', 'integration test');
+  await alpha.removeMember(agent);
+
+  await assert.rejects(() => alpha.inboxStatus(agent), /is not registered/);
+});
