@@ -20,7 +20,9 @@ zwischen zwei Systemen, die es schon gibt.
 
 ## Status
 
-Phase 1 (Proof of Concept). Abgedeckt durch 87 Tests: Tasks mit Profil,
+**v0.2 — nutzbar, nicht gehärtet.** Für die Abstimmung zwischen Sessions
+funktional vollständig; mit rauen Kanten bei Merges und allem, was unten nicht
+als verifiziert aufgeführt ist. Abgedeckt durch 87 Tests: Tasks mit Profil,
 Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
 Inbox-Polling und Aufwecken, Team-Commands/-Tools, Dashboard, Config-/State-
 Persistenz und ein Integrationstest gegen die echte CLI.

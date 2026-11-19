@@ -44,7 +44,7 @@ const TICK_MS = 10_000;
 export default class AgentBusExtension implements Extension {
   static metadata: ExtensionMetadata = {
     name: 'aiderdesk-agent-bus',
-    version: '0.1.0',
+    version: '0.2.0',
     description: 'Multi-agent teams on top of agent-bus: spawn workers, give them identities and keep them talking',
     author: 'local',
     capabilities: ['events', 'tools', 'commands', 'agents', 'ui'],

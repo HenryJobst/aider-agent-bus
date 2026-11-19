@@ -34,7 +34,7 @@ Seen live: extension load, commands, joins (including the worktree switch), MCP
 registration, panel refresh, and master/worker board traffic. Not yet verified:
 a delegated work package finished with review and merge, and the panel's
 stop/stop-all/mute/click paths — see
-[Phase 1 acceptance run](#phase-1-acceptance-run).
+[acceptance run](#acceptance-run).
 
 ## For agents
 
@@ -300,9 +300,9 @@ when the CLI is missing. Override the paths with `AGENT_BUS_BIN` and
 
 What is **not** covered automatically: the real extension load, actual
 `createTask` + worktree creation, MCP identity registration and a two-task
-conversation inside AiderDesk. Those are the Phase 1 acceptance steps below.
+conversation inside AiderDesk. Those are the acceptance steps below.
 
-## Phase 1 acceptance run
+## Acceptance run
 
 1. `/agent-bus-init` → master registered, config file created.
 2. Spawn `backend` (developer) and `qa` (reviewer) in a git repository.
