@@ -1,5 +1,7 @@
 # AiderDesk Agent Bus
 
+[English](README.md) · [Deutsch](README.de.md)
+
 Turns independent AiderDesk tasks into a coordinated multi-agent team.
 
 AiderDesk runs agents and manages git worktrees. [agent-bus](https://github.com/MustaphaSteph/agent-bus)
@@ -272,6 +274,7 @@ expects it:
 
 ```
 README.md                                  this file
+README.de.md                               German version
 LICENSE                                    MIT
 AGENTS.md                                  instructions for agents (repo + team membership)
 .aider-desk/agent-bus.example.json         project config template
