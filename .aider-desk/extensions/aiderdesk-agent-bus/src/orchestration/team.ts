@@ -377,6 +377,42 @@ export function stopWorker(runtime: ProjectRuntime, nameOrTaskId: string): { ok:
   return { ok: true };
 }
 
+/**
+ * Removes a participant from the team: the bus registration is deleted, the
+ * join table entry is dropped. The AiderDesk task itself keeps running and is
+ * not closed — only its bus identity and wake-ups go away.
+ */
+export async function removeWorker(
+  runtime: ProjectRuntime,
+  nameOrTaskId: string,
+): Promise<{ ok: boolean; agentName?: string; error?: string }> {
+  const worker =
+    runtime.state.findByName(nameOrTaskId) ??
+    runtime.state.findByTaskId(nameOrTaskId) ??
+    runtime.state.workers.find((entry) => entry.name === nameOrTaskId);
+
+  if (!worker) {
+    return { ok: false, error: `unknown worker "${nameOrTaskId}"` };
+  }
+
+  try {
+    await runtime.bus.removeMember(worker.agentName);
+  } catch (error) {
+    // A registration that never existed must not block the local cleanup.
+    runtime.log(
+      `bus registration of ${worker.agentName} could not be removed: ${error instanceof Error ? error.message : String(error)}`,
+      'warn',
+    );
+  }
+
+  runtime.unreadByTask.delete(worker.taskId);
+  runtime.lastInboxError.delete(worker.taskId);
+  runtime.state.removeWorker(worker.taskId);
+  runtime.log(`removed ${worker.agentName} from the team`, 'info');
+
+  return { ok: true, agentName: worker.agentName };
+}
+
 export function describeWorkers(
   runtime: ProjectRuntime,
 ): Array<Pick<WorkerRecord, 'agentName' | 'role' | 'status' | 'worktree' | 'taskId'>> {

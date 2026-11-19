@@ -33,6 +33,19 @@
     setNote(result && result.ok ? `${result.registered}/${result.total} registered` : 'refresh failed');
   };
 
+  const removeWorker = async (agentName) => {
+    if (!window.confirm(`Remove ${agentName} from the team? The task keeps running.`)) {
+      return;
+    }
+    setNote(`${agentName}: removing…`);
+    const result = await executeExtensionAction('remove-worker', agentName);
+    setNote(
+      result && result.ok
+        ? `${agentName}: removed`
+        : `${agentName}: ${result && result.error ? result.error : 'remove failed'}`,
+    );
+  };
+
   const stopWorker = async (agentName) => {
     setNote(`${agentName}: stopping…`);
     const result = await executeExtensionAction('stop-worker', agentName);
@@ -80,6 +93,9 @@
                 onClick={() => stopWorker(worker.agentName)}
               >
                 stop
+              </Button>
+              <Button size="xs" variant="outline" color="danger" onClick={() => removeWorker(worker.agentName)}>
+                ×
               </Button>
             </div>
           ))}

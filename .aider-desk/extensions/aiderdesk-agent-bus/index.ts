@@ -28,7 +28,7 @@ import type {
 import { createTeamCommands } from './src/commands.js';
 import { configPath } from './src/core/config.js';
 import { ProjectRuntime } from './src/core/runtime.js';
-import { stopWorker } from './src/orchestration/team.js';
+import { removeWorker, stopWorker } from './src/orchestration/team.js';
 import { checkRegistration, collectHealth } from './src/orchestration/doctor.js';
 import { InboxWatcher } from './src/orchestration/wakeup.js';
 import { ROLE_PROFILE_IDS, buildProfiles } from './src/profiles.js';
@@ -333,6 +333,16 @@ export default class AgentBusExtension implements Extension {
         const result = stopWorker(runtime, target);
         if (!result.ok) {
           runtime.log(`stop failed for "${target}": ${result.error ?? 'unknown error'}`, 'warn');
+        }
+        context.triggerUIDataRefresh(DASHBOARD_ID);
+        return result;
+      }
+      case 'remove-worker': {
+        const target = String(args[0] ?? '');
+        runtime.log(`dashboard remove requested for "${target}"`, 'info');
+        const result = await removeWorker(runtime, target);
+        if (!result.ok) {
+          runtime.log(`remove failed for "${target}": ${result.error ?? 'unknown error'}`, 'warn');
         }
         context.triggerUIDataRefresh(DASHBOARD_ID);
         return result;

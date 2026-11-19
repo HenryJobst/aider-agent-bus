@@ -213,6 +213,12 @@ export class BusClient {
     return stdout.trim();
   }
 
+  /** Removes an agent from the bus registry; message and task history stay. */
+  async removeMember(agentName: string): Promise<string> {
+    const { stdout } = await this.run(['remove-member', agentName, ...this.scopeArgs()]);
+    return stdout.trim();
+  }
+
   async directory(): Promise<string> {
     const { stdout } = await this.run(['whois', ...this.scopeArgs()]);
     return stdout;

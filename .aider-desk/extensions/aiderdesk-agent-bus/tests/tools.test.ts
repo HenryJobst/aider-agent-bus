@@ -16,6 +16,7 @@ test('the master gets the full control plane', () => {
     'agent_bus_join_worker',
     'agent_bus_get_team',
     'agent_bus_stop_worker',
+    'agent_bus_remove_worker',
   ]);
 });
 

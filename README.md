@@ -78,6 +78,7 @@ Then reload extensions in AiderDesk.
 /agent-bus-team                                              # roster, status, unread counts
 /agent-bus-doctor                                            # is each identity really on the bus?
 /agent-bus-stop backend                                      # interrupt
+/agent-bus-remove backend                                    # remove from team
 ```
 
 Two ways to get a team member:
@@ -98,7 +99,8 @@ is configured for the project and agents will not see `register`/`send`/`inbox`
 — configure `.aider-desk/mcp-servers.json` first.
 
 The master agent gets `agent_bus_spawn_worker`, `agent_bus_spawn_team`,
-`agent_bus_join_worker`, `agent_bus_get_team` and `agent_bus_stop_worker`;
+`agent_bus_join_worker`, `agent_bus_get_team`, `agent_bus_stop_worker` and
+`agent_bus_remove_worker`;
 every other profile only sees the team overview. Conversations stay on the
 agent-bus MCP tools (`register`, `send`, `ask`, `reply`, `delegate`, `now`,
 `team_board`).

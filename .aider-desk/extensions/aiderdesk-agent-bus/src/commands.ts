@@ -14,6 +14,7 @@ import {
   inferRole,
   joinWorker,
   registerMaster,
+  removeWorker,
   spawnWorkers,
   stopWorker,
 } from './orchestration/team.js';
@@ -227,5 +228,25 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
-  return [init, team, doctor, spawn, join, stop];
+  const remove: CommandDefinition = {
+    name: 'agent-bus-remove',
+    description: 'Remove a participant from the team: /agent-bus-remove <worker name or task id>',
+    execute: async (args, context) => {
+      const target = args[0];
+      if (!target) {
+        reportError(context, 'Usage: /agent-bus-remove <worker name or task id>');
+        return;
+      }
+      const runtime = getRuntime(context);
+      const result = await removeWorker(runtime, target);
+      if (!result.ok) {
+        reportError(context, result.error ?? 'remove failed');
+        return;
+      }
+      context.triggerUIComponentsReload();
+      report(context, `removed ${result.agentName} from the team (the task keeps running)`);
+    },
+  };
+
+  return [init, team, doctor, spawn, join, stop, remove];
 }

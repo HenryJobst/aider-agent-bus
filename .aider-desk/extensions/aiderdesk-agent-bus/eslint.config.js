@@ -27,7 +27,7 @@ export default tseslint.config(
     files: ['src/ui/**/*.jsx'],
     languageOptions: {
       parserOptions: { ecmaFeatures: { jsx: true } },
-      globals: { React: 'readonly' },
+      globals: { React: 'readonly', window: 'readonly' },
     },
     rules: {
       // JSX components receive their API through props; the UI validator covers typos.

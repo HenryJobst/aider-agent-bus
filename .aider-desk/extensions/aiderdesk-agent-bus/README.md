@@ -97,6 +97,7 @@ Commands (run in the master task):
 | `/agent-bus-spawn <name> <developer\|reviewer\|analyst> <work package>` | create and start a worker |
 | `/agent-bus-join [name] [role]` | adopt **this** task; name and role default from the task |
 | `/agent-bus-stop <name or task id>` | interrupt a worker, keep its registration |
+| `/agent-bus-remove <name or task id>` | remove a participant: bus registration and wake-ups go, the task keeps running |
 
 Extension tools (master profile only; other profiles get `agent_bus_get_team`):
 
@@ -107,10 +108,11 @@ Extension tools (master profile only; other profiles get `agent_bus_get_team`):
 | `agent_bus_join_worker` | `name`, `role`, `taskId?`, `switchToWorktree?` | adopt an existing task (defaults to the calling task) |
 | `agent_bus_get_team` | — | roster plus resolved config |
 | `agent_bus_stop_worker` | `worker` | interrupt by agent name, display name or task id |
+| `agent_bus_remove_worker` | `worker` | remove a participant from the team, task stays open |
 
 Dashboard (`tasks-sidebar-bottom`): a compact strip at the bottom of the tasks
-sidebar with status dots, unread badges, per-worker `stop`, collapse and a
-refresh action that reports how many identities are registered on the bus. It is only registered for projects that already have a team
+sidebar with status dots, unread badges, per-worker `stop` and `×` (remove), collapse
+and a refresh action that reports how many identities are registered on the bus. It is only registered for projects that already have a team
 (master or workers); an uninitialised project does not get a floating panel.
 It is docked, not a floating window, so it does not cover the chat.
 

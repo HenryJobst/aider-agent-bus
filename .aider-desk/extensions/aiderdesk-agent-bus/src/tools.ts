@@ -7,7 +7,15 @@ import { z } from 'zod';
 import type { ExtensionContext, ToolDefinition } from '@aiderdesk/extensions';
 
 import type { ProjectRuntime } from './core/runtime.js';
-import { deriveJoinName, ensureMaster, inferRole, joinWorker, spawnWorkers, stopWorker } from './orchestration/team.js';
+import {
+  deriveJoinName,
+  ensureMaster,
+  inferRole,
+  joinWorker,
+  removeWorker,
+  spawnWorkers,
+  stopWorker,
+} from './orchestration/team.js';
 
 const workerSchema = z.object({
   name: z.string().min(1).describe('Short worker name, used in the agent-bus identity, e.g. "backend"'),
@@ -178,5 +186,24 @@ export function createTeamTools(
   if (!canSpawn) {
     return [getTeam];
   }
-  return [spawnWorker, spawnTeam, join, getTeam, stop];
+  const removeSchema = z.object({
+    worker: z.string().min(1).describe('Worker agent name, display name or task id'),
+  });
+
+  const remove: ToolDefinition<typeof removeSchema> = {
+    name: 'agent_bus_remove_worker',
+    description:
+      'Remove a participant from the team: deletes its bus registration and stops wake-ups. The AiderDesk task keeps running and is not closed.',
+    inputSchema: removeSchema,
+    async execute(input, _signal, context) {
+      const runtime = getRuntime(context);
+      const result = await removeWorker(runtime, input.worker);
+      if (result.ok) {
+        context.triggerUIComponentsReload();
+      }
+      return { ...result, team: formatWorkers(runtime) };
+    },
+  };
+
+  return [spawnWorker, spawnTeam, join, getTeam, stop, remove];
 }

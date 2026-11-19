@@ -74,6 +74,7 @@ project only the global one is loaded.
 | `/agent-bus-team` | roster, roles, task ids, worktrees, unread counts |
 | `/agent-bus-doctor` | bus-side truth: registered / NOT registered per identity |
 | `/agent-bus-stop <name>` | interrupt a worker, keep the registration |
+| `/agent-bus-remove <name>` | remove a participant (bus registration + wake-ups); task stays open |
 
 Tools (master profile only, others see `agent_bus_get_team`):
 `agent_bus_spawn_worker`, `agent_bus_spawn_team`, `agent_bus_join_worker`,

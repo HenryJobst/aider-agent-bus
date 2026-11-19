@@ -3,12 +3,14 @@ import test from 'node:test';
 
 import type { TaskContext } from '@aiderdesk/extensions';
 
+import type { BusClient } from '../src/bus/client.js';
 import {
   deriveJoinName,
   ensureMaster,
   inferRole,
   joinWorker,
   registerMaster,
+  removeWorker,
   spawnWorkers,
   stopWorker,
 } from '../src/orchestration/team.js';
@@ -315,6 +317,31 @@ test('joining respects maxWorkers', async () => {
   assert.equal(outcome.ok, false);
   assert.match(outcome.error ?? '', /maxWorkers \(1\) reached/);
   assert.equal(runtime.state.workers.length, 1);
+});
+
+test('removing a worker drops the mapping and tolerates a missing registration', async () => {
+  const { runtime } = makeRuntime();
+  await spawnWorkers(runtime, [{ name: 'backend', role: 'developer', task: 'A' }]);
+  runtime.bus = {
+    removeMember: async () => {
+      throw new Error("agent 'test-project-backend' is not registered");
+    },
+  } as unknown as BusClient;
+
+  const result = await removeWorker(runtime, 'test-project-backend');
+
+  assert.equal(result.ok, true);
+  assert.equal(result.agentName, 'test-project-backend');
+  assert.equal(runtime.state.workers.length, 0);
+});
+
+test('removing an unknown worker reports instead of guessing', async () => {
+  const { runtime } = makeRuntime();
+
+  const result = await removeWorker(runtime, 'nobody');
+
+  assert.equal(result.ok, false);
+  assert.match(result.error ?? '', /unknown worker/);
 });
 
 test('stopWorker interrupts the mapped task and keeps the record', async () => {
