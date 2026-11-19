@@ -81,6 +81,7 @@ Then reload extensions in AiderDesk.
 /agent-bus-config                   # show/change project settings
 /agent-bus-stop                     # interrupt the only running worker
 /agent-bus-remove <name>            # remove a participant from the team
+/agent-bus-reset confirm            # remove every identity, clear the join table
 ```
 
 Two ways to get a team member:
@@ -220,7 +221,7 @@ Verify: `agent-bus tasks --project <p> --team <t>`, board status in the panel.
 |---|---|
 | Current run of one agent stops | `/agent-bus-stop <name>` |
 | Participant leaves the team, task keeps running | `/agent-bus-remove <name>` or `×` in the panel |
-| Whole team done | remove/stop all, then close the tasks in AiderDesk |
+| Whole team done | `/agent-bus-reset confirm`, then close the tasks in AiderDesk |
 
 ### 6. No git repository (analysis, docs, someone else's project)
 

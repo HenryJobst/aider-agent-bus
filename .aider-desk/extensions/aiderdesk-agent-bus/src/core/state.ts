@@ -104,6 +104,11 @@ export class AgentBusState {
     this.persist();
   }
 
+  clearMaster(): void {
+    delete this.snapshot.master;
+    this.persist();
+  }
+
   upsertWorker(
     record: Omit<WorkerRecord, 'createdAt' | 'wakes'> & { createdAt?: string; wakes?: number },
   ): WorkerRecord {

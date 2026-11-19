@@ -17,6 +17,7 @@ import {
   pickStopTarget,
   registerMaster,
   removeWorker,
+  resetTeam,
   spawnWorkers,
   stopWorker,
 } from './orchestration/team.js';
@@ -290,5 +291,47 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
-  return [init, team, config, doctor, spawn, join, stop, remove];
+  const reset: CommandDefinition = {
+    name: 'agent-bus-reset',
+    description: 'Remove every team identity and clear the join table: /agent-bus-reset confirm',
+    execute: async (args, context) => {
+      const runtime = getRuntime(context);
+      const names = [
+        runtime.state.master?.agentName,
+        ...runtime.state.workers.map((worker) => worker.agentName),
+      ].filter((name): name is string => !!name);
+
+      if (names.length === 0) {
+        report(context, 'No team identities to remove.');
+        return;
+      }
+
+      if (args[0] !== 'confirm') {
+        reportError(
+          context,
+          [
+            `This removes ${names.length} identity(ies) from the bus and clears the join table:`,
+            ...names.map((name) => `- ${name}`),
+            '',
+            'The AiderDesk tasks keep running. Run `/agent-bus-reset confirm` to proceed.',
+          ].join('\n'),
+        );
+        return;
+      }
+
+      const result = await resetTeam(runtime);
+      context.triggerUIComponentsReload();
+      const lines = [`removed ${result.removed.length} identities`];
+      if (result.failed.length > 0) {
+        lines.push('bus-side failures (clean up manually):');
+        for (const failure of result.failed) {
+          lines.push(`- ${failure.agentName}: ${failure.error}`);
+        }
+      }
+      lines.push('Master cleared — run `/agent-bus-init` to start over.');
+      report(context, lines.join('\n'));
+    },
+  };
+
+  return [init, team, config, doctor, spawn, join, stop, remove, reset];
 }

@@ -498,6 +498,53 @@ export function stopAll(runtime: ProjectRuntime): { stopped: string[]; skipped: 
   return { stopped, skipped };
 }
 
+/**
+ * Removes every identity of the project's team, the master included, and clears
+ * the join table. Bus-side failures do not stop the local cleanup; they are
+ * reported so a stale registration can be removed by hand.
+ */
+export async function resetTeam(runtime: ProjectRuntime): Promise<{
+  removed: string[];
+  failed: Array<{ agentName: string; error: string }>;
+}> {
+  const targets = [
+    ...(runtime.state.master
+      ? [{ agentName: runtime.state.master.agentName, taskId: runtime.state.master.taskId, role: 'master' }]
+      : []),
+    ...runtime.state.workers.map((worker) => ({
+      agentName: worker.agentName,
+      taskId: worker.taskId,
+      role: worker.role,
+    })),
+  ];
+
+  const removed: string[] = [];
+  const failed: Array<{ agentName: string; error: string }> = [];
+
+  for (const target of targets) {
+    try {
+      await runtime.bus.removeMember(target.agentName);
+    } catch (error) {
+      failed.push({
+        agentName: target.agentName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    if (target.role === 'master') {
+      runtime.state.clearMaster();
+    } else {
+      runtime.state.removeWorker(target.taskId);
+    }
+    runtime.unreadByTask.delete(target.taskId);
+    runtime.lastInboxError.delete(target.taskId);
+    removed.push(target.agentName);
+  }
+
+  runtime.log(`reset team: removed ${removed.length} identities`, 'info');
+  return { removed, failed };
+}
+
 export function describeWorkers(
   runtime: ProjectRuntime,
 ): Array<Pick<WorkerRecord, 'agentName' | 'role' | 'status' | 'worktree' | 'taskId'>> {

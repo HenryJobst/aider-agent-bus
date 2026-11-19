@@ -14,6 +14,7 @@ import {
   pickStopTarget,
   registerMaster,
   removeWorker,
+  resetTeam,
   spawnWorkers,
   stopAll,
   stopWorker,
@@ -372,6 +373,35 @@ test('removing an unknown worker reports instead of guessing', async () => {
 
   assert.equal(result.ok, false);
   assert.match(result.error ?? '', /unknown worker/);
+});
+
+test('resetTeam clears master and workers even when the bus call fails', async () => {
+  const { runtime } = makeRuntime();
+  ensureMaster(runtime, { data: { id: 'master-task' } } as unknown as TaskContext);
+  runtime.state.upsertWorker({
+    agentName: 'p-backend',
+    taskId: 't-backend',
+    role: 'developer',
+    name: 'backend',
+    capabilities: [],
+    worktree: null,
+    status: 'idle',
+  });
+  runtime.bus = {
+    removeMember: async (agentName: string) => {
+      if (agentName.includes('master')) {
+        throw new Error('bus said no');
+      }
+    },
+  } as unknown as BusClient;
+
+  const result = await resetTeam(runtime);
+
+  assert.equal(result.removed.length, 2);
+  assert.equal(result.failed.length, 1);
+  assert.match(result.failed[0].error, /bus said no/);
+  assert.equal(runtime.state.master, undefined);
+  assert.equal(runtime.state.workers.length, 0);
 });
 
 test('stopAll interrupts running agents, master included, and skips idle ones', () => {

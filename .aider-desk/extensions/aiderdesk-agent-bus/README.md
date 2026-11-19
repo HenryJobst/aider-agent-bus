@@ -100,6 +100,7 @@ Commands (run in the master task):
 | `/agent-bus-join [name] [role]` | adopt **this** task; name and role default from the task |
 | `/agent-bus-stop [name or task id]` | interrupt a worker; without an argument the only running one |
 | `/agent-bus-remove <name or task id>` | remove a participant: bus registration and wake-ups go, the task keeps running |
+| `/agent-bus-reset confirm` | remove every identity, master included, and clear the join table |
 
 Extension tools (master profile only; other profiles get `agent_bus_get_team`):
 
