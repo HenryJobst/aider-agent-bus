@@ -22,7 +22,7 @@ zwischen zwei Systemen, die es schon gibt.
 
 **v0.2.1 — nutzbar, Härtung läuft.** Für die Abstimmung zwischen Sessions
 funktional vollständig; mit rauen Kanten bei Merges und allem, was unten nicht
-als verifiziert aufgeführt ist. Abgedeckt durch 190 Tests: Tasks mit Profil,
+als verifiziert aufgeführt ist. Abgedeckt durch 200 Tests: Tasks mit Profil,
 Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
 Inbox-Polling und Aufwecken, jeder Slash-Command samt Validierung, Task- und
 Worktree-Events, Profil-Overrides, Dashboard-Gating, Config-/State-Persistenz
@@ -335,7 +335,7 @@ npm run check   # format:check + lint + typecheck + tests
 npm run mutate:wakeup  # Stryker-Mutationsscore für wakeup.ts (langsam, separat)
 ```
 
-190 Tests, ESLint + Prettier eingerichtet:
+200 Tests, ESLint + Prettier eingerichtet:
 
 | Suite | Deckt ab |
 |---|---|
@@ -348,7 +348,7 @@ npm run mutate:wakeup  # Stryker-Mutationsscore für wakeup.ts (langsam, separat
 | Drift | Metadata-Version vs. `package.json`, vollständige Profilform, Command-Parität zwischen englischer und deutscher README |
 | Wake integriert | echte CLI und Bus-DB: eine zugestellte Nachricht weckt genau einmal, ein stummer Worker nie |
 | Integration | echte CLI in einem temporären `AGENT_BUS_DIR`: zwei Identitäten registrieren, Nachricht, Unread-Zähler, Scope-Isolation, `inject` mit führendem `--`, `remove-member` ohne Scope; wird ohne CLI übersprungen |
-| Mutation | Stryker + Vitest-Runner auf `wakeup.ts`: 276 Mutanten, 77 % total / 81 % covered nach dem ersten Durchgang; übrig bleiben vor allem Log-Strings, Rückgabewert-Mutanten und zwei idempotente Schreib-Guards |
+| Mutation | Stryker + Vitest-Runner: `wakeup.ts` 77 % total / 81 % covered, `state.ts` 93 %; übrig bleiben vor allem Log-Strings, Rückgabewert-Mutanten und äquivalente Guards |
 
 Design-Entscheidungen und Stolperfallen (expliziter Bus-Scope, keine
 blockierenden Inbox-Waits, Worktree-Regeln) stehen in [`AGENTS.md`](AGENTS.md)

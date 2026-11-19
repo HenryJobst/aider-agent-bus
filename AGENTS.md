@@ -132,8 +132,10 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
 Mutation testing runs Stryker with the Vitest runner on one module at a time
 (`stryker.config.json`, 2 workers, 15 s timeout). `wakeup.ts` started at 51 %
 total / 57 % covered and reached 77 % / 81 % after the first gap-closing pass
-(276 mutants). What remains is mostly log strings, return-value mutants and two
-idempotent-write guards marked with `// Stryker disable all`. Keep it out of `npm run check`: a run takes minutes, and
+(276 mutants); `state.ts` went from 74 % to 93 % by testing persistence
+(`setMaster`, `clearMaster`, `upsert`, `updateWorker`, `reconcile`) instead of
+only in-memory state. What remains is mostly log strings, return-value mutants
+and equivalent guards (two marked with `// Stryker disable all`). Keep it out of `npm run check`: a run takes minutes, and
 `vitest.related` also pulls in tests that reach the module indirectly, so the
 score covers more than the module's own test file.
 

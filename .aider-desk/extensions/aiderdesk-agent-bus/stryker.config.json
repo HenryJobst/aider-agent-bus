@@ -7,10 +7,10 @@
   "mutate": ["src/orchestration/wakeup.ts"],
   "reporters": ["clear-text", "progress", "html", "json"],
   "htmlReporter": {
-    "fileName": "reports/mutation/wakeup.html"
+    "fileName": "reports/mutation/index.html"
   },
   "jsonReporter": {
-    "fileName": "reports/mutation/wakeup.json"
+    "fileName": "reports/mutation/mutation.json"
   },
   "timeoutMS": 15000,
   "concurrency": 2,

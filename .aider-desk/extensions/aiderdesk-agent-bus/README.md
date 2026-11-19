@@ -295,7 +295,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 190 tests, Vitest
+npm test          # 200 tests, Vitest
 npm run test:watch
 npm run mutate:wakeup  # Stryker + Vitest runner, one module (slow, separate)
 npm run typecheck # tsc --noEmit
@@ -341,8 +341,9 @@ instantiates the real extension and substitutes only `ProjectContext`,
 
 Mutation testing uses Stryker with the Vitest runner (`stryker.config.json`)
 on one module at a time. `wakeup.ts` started at 51 % total / 57 % covered and
-reached 77 % / 81 % after the first gap-closing pass (276 mutants); what remains
-is mostly log strings, return-value mutants and two idempotent-write guards.
+reached 77 % / 81 % after the first gap-closing pass (276 mutants); `state.ts`
+went from 74 % to 93 % once persistence was tested. What remains is mostly log
+strings, return-value mutants and equivalent guards.
 The HTML report lands in `reports/mutation/` (gitignored). `vitest.related` also
 runs tests that reach the module indirectly, so treat the score as a signal,
 not a precise per-file number.
