@@ -112,8 +112,16 @@ export default class AgentBusExtension implements Extension {
         continue;
       }
       this.lastPollAt.set(projectDir, now);
+      const started = Date.now();
       try {
         await this.watchers.get(projectDir)?.pollOnce();
+        const elapsed = Date.now() - started;
+        if (elapsed > 1500) {
+          runtime.log(
+            `inbox poll for ${runtime.state.workers.length} worker(s) took ${elapsed} ms — bus or CLI is slow`,
+            'warn',
+          );
+        }
       } catch (error) {
         runtime.log(`inbox poll failed: ${error instanceof Error ? error.message : String(error)}`, 'warn');
       }
@@ -196,7 +204,7 @@ export default class AgentBusExtension implements Extension {
 
     const watcher = this.watchers.get(runtime.projectDir);
     if (watcher) {
-      await watcher.checkWorker(taskId, { wake: false });
+      void watcher.checkWorker(taskId, { wake: false });
       context.triggerUIDataRefresh(DASHBOARD_ID);
     }
 

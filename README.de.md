@@ -337,7 +337,8 @@ und in der [Extension-README](.aider-desk/extensions/aiderdesk-agent-bus/README.
 | Log sagt `Agent profile with id agent-bus-… not found` | die Extension hat keine Profile registriert (globaler Kontext) | Extensions neu laden; Profile müssen auch ohne offenes Projekt gelistet sein |
 | Agent sagt, er habe keine agent-bus-Tools | kein MCP-Server konfiguriert oder der Connector der Task entstand vor Server/Profil | `agent-bus` in `.aider-desk/mcp-servers.json` ergänzen, init/join erneut ausführen, dann einen frischen Prompt starten oder die App neu starten – bestehende Connectoren werden nicht neu gebaut |
 | `Exception in connector … scipy … _spropack` in AiderDesk | das Python-Venv der App bringt einen scipy-Build, den der Loader ablehnt (nicht diese Extension) | ein funktionierendes scipy in `~/Library/Application Support/aider-desk/python-venv` pinnen oder die Repo-Map abschalten |
-| App wirkt hängend, viele Agentenläufe, `woke …` wiederholt sich im Log | Wake-Schleife: Agenten ignorieren ihre Inbox, jedes Wecken ist ein voller Lauf | Agent stummschalten (`/agent-bus-pause`), `wakeCooldownMs` erhöhen, `maxWakesPerTask` senken; 0.2 stoppt solche Agenten selbst |
+| App wirkt hängend, viele Agentenläufe, `woke …` wiederholt sich im Log | Wake-Schleife: Agenten ignorieren ihre Inbox, jedes Wecken ist ein voller Lauf | Agent stummschalten (`/agent-bus-pause`), `wakeCooldownMs` erhöhen, `maxWakesPerTask` senken; 0.2 parkt solche Agenten nach dem Budget |
+| Log zeigt `inbox poll … took N ms` | die Bus-CLI ist langsam, jeder Poll blockiert die Extension | `agentBus.nodeBinary`, Anzahl der Worker und eine mögliche DB-Sperre durch einen anderen Prozess prüfen |
 | Panel erscheint nicht | das Projekt hat noch kein Team | `/agent-bus-init` ausführen; das Panel wird registriert, sobald Master oder Worker existieren |
 
 ## Lizenz

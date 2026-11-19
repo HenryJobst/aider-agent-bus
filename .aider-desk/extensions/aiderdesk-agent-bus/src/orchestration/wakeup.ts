@@ -75,7 +75,11 @@ export class InboxWatcher {
     // One wake per tick: several simultaneous agent runs are what makes the
     // app feel hung.
     for (const worker of this.runtime.state.workers) {
-      if (worker.status === 'closed' || worker.status === 'starting') {
+      if (
+        worker.status === 'closed' ||
+        worker.status === 'starting' ||
+        worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask
+      ) {
         continue;
       }
       const before = worker.wakes;
@@ -92,12 +96,27 @@ export class InboxWatcher {
       return 0;
     }
 
+    // No point asking the bus every tick for an agent that is already parked.
+    if (worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask) {
+      if (!worker.wakeBudgetLogged) {
+        this.runtime.state.updateWorker(taskId, { status: 'blocked', wakeBudgetLogged: true });
+        this.runtime.log(
+          `${worker.agentName} reached maxWakesPerTask (${worker.wakes}) without consuming its inbox — parked until its messages change`,
+          'warn',
+        );
+      }
+      return this.runtime.unreadByTask.get(taskId) ?? 0;
+    }
+
     let unread: number;
     try {
       const status = await this.runtime.bus.inboxStatus(worker.agentName);
       unread = status.unread;
       this.runtime.unreadByTask.set(taskId, unread);
       this.runtime.lastInboxError.delete(taskId);
+      if (worker.wakeBudgetLogged && typeof worker.lastWakeUnread === 'number' && unread < worker.lastWakeUnread) {
+        this.runtime.state.updateWorker(taskId, { wakeBudgetLogged: false });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (error instanceof BusUnavailableError) {
@@ -121,12 +140,6 @@ export class InboxWatcher {
     if (unread > 0) {
       if (this.canWake(taskId, unread)) {
         await this.wake(taskId, unread);
-      } else if (worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask) {
-        this.runtime.state.updateWorker(taskId, { status: 'blocked' });
-        this.runtime.log(
-          `${worker.agentName} reached maxWakesPerTask (${worker.wakes}) without consuming its inbox — muted until messages change`,
-          'warn',
-        );
       }
     }
     return unread;

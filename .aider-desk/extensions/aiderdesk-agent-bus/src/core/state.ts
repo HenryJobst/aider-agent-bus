@@ -24,6 +24,8 @@ export interface WorkerRecord {
   lastWakeAt?: string;
   /** Unread count at the last wake; used to stop waking an agent that ignores its inbox. */
   lastWakeUnread?: number;
+  /** true once the exhausted budget has been reported, to keep the log quiet. */
+  wakeBudgetLogged?: boolean;
   wakes: number;
 }
 

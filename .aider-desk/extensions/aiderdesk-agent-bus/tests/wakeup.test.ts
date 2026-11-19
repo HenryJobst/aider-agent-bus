@@ -97,6 +97,36 @@ test('exhausting the wake budget marks the worker blocked instead of spinning', 
   assert.equal(runtime.state.findByTaskId('task-1')?.status, 'blocked');
 });
 
+test('a parked worker is not polled and warns only once', async () => {
+  const { runtime, watcher } = await setup(2);
+  let busCalls = 0;
+  runtime.bus = {
+    inboxStatus: async () => {
+      busCalls += 1;
+      return { unread: 2, claimed: 0, delivered: 0, raw: {} };
+    },
+  } as unknown as BusClient;
+
+  let warnings = 0;
+  const originalLog = runtime.log;
+  runtime.log = ((message: string, type?: 'info' | 'error' | 'warn' | 'debug') => {
+    if (type === 'warn' && message.includes('maxWakesPerTask')) {
+      warnings += 1;
+    }
+    originalLog(message, type);
+  }) as typeof runtime.log;
+
+  runtime.state.updateWorker('task-1', { wakes: runtime.config.orchestration.maxWakesPerTask });
+
+  await watcher.checkWorker('task-1');
+  await watcher.checkWorker('task-1');
+  await watcher.pollOnce();
+
+  assert.equal(busCalls, 0);
+  assert.equal(warnings, 1);
+  assert.equal(runtime.state.findByTaskId('task-1')?.status, 'blocked');
+});
+
 test('one poll tick wakes at most one worker', async () => {
   const { runtime, fake, watcher } = await setup(1);
   await spawnWorkers(runtime, [{ name: 'second', role: 'developer', task: 'B' }]);
