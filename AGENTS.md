@@ -138,6 +138,11 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
    Dropping the flags silently splits the team.
 3. **No blocking inbox waits.** Wake-up is `inbox-status --json` + `runPrompt`.
    A worker must never sit in `inbox(wait_s: 110)`.
+   Poll only the project AiderDesk currently shows (`onProjectStarted`,
+   `onProjectStopped`, and the UI/command calls that know the open project).
+   Never poll a project the user just left — that spawns background agent runs
+   and is what made the app feel hung. One poll at a time (`pollInFlight`), and
+   `onProjectStopped` drops the cached runtime for that project.
 4. **Do not fake a bus identity.** The extension writes the registration prompt;
    the agent performs `register` through its MCP tools.
 5. **Never wake a running task.** Guarded by `runningTasks`, `wakeCooldownMs`

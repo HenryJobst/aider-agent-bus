@@ -18,6 +18,8 @@ import type {
   Extension,
   ExtensionContext,
   ExtensionMetadata,
+  ProjectStartedEvent,
+  ProjectStoppedEvent,
   TaskClosedEvent,
   ToolDefinition,
   UIComponentDefinition,
@@ -59,14 +61,44 @@ export default class AgentBusExtension implements Extension {
   private readonly profileOverrides = new Map<string, AgentProfile>();
   private learnedDefaults: ProfileDefaults | null = null;
   private pollTimer?: NodeJS.Timeout;
+  /** The project AiderDesk currently shows. Only this one is polled and woken. */
+  private activeProjectDir?: string;
+  /** A slow bus must not stack overlapping pollers on top of each other. */
+  private pollInFlight = false;
 
   async onLoad(context: ExtensionContext): Promise<void> {
     context.log('[agent-bus] extension loaded', 'info');
+    this.noteActiveProject(context);
     if (timerHost.__agentBusPollTimer) {
       clearInterval(timerHost.__agentBusPollTimer);
     }
     this.pollTimer = setInterval(() => void this.pollAll(), TICK_MS);
     timerHost.__agentBusPollTimer = this.pollTimer;
+  }
+
+  async onProjectStarted(event: ProjectStartedEvent, _context: ExtensionContext): Promise<void> {
+    this.activeProjectDir = event.baseDir;
+  }
+
+  async onProjectStopped(event: ProjectStoppedEvent, context: ExtensionContext): Promise<void> {
+    // Tasks of a stopped project are unloaded; polling them would only start
+    // wake prompts against task ids AiderDesk no longer has. Worse, a project
+    // the user just left would keep spawning agents in the background.
+    this.runtimes.delete(event.baseDir);
+    this.watchers.delete(event.baseDir);
+    this.lastPollAt.delete(event.baseDir);
+    if (this.activeProjectDir === event.baseDir) {
+      this.activeProjectDir = undefined;
+    }
+    context.log(`[agent-bus] project ${event.baseDir} stopped — polling and wake-ups paused`, 'info');
+  }
+
+  /** UI and command calls mark the project as active; project events do too. */
+  private noteActiveProject(context: ExtensionContext): void {
+    const projectDir = context.getProjectDir();
+    if (projectDir) {
+      this.activeProjectDir = projectDir;
+    }
   }
 
   onUnload(): void {
@@ -113,28 +145,44 @@ export default class AgentBusExtension implements Extension {
   }
 
   private async pollAll(): Promise<void> {
-    for (const [projectDir, runtime] of this.runtimes) {
-      if (!runtime.config.enabled || runtime.state.workers.length === 0) {
-        continue;
+    // Overlapping polls are what turns a slow CLI into a process storm: every
+    // tick would start fresh `agent-bus` processes while the previous poll is
+    // still waiting for its child process to exit.
+    if (this.pollInFlight) {
+      return;
+    }
+
+    // Only the project AiderDesk currently shows is polled. A stopped project
+    // keeps its join table on disk but must not be woken in the background.
+    const projectDir = this.activeProjectDir;
+    if (!projectDir) {
+      return;
+    }
+    const runtime = this.runtimes.get(projectDir);
+    if (!runtime || !runtime.config.enabled || runtime.state.workers.length === 0) {
+      return;
+    }
+    const now = Date.now();
+    if (now - (this.lastPollAt.get(projectDir) ?? 0) < runtime.config.orchestration.pollIntervalMs) {
+      return;
+    }
+
+    this.lastPollAt.set(projectDir, now);
+    this.pollInFlight = true;
+    const started = Date.now();
+    try {
+      await this.watchers.get(projectDir)?.pollOnce();
+      const elapsed = Date.now() - started;
+      if (elapsed > 1500) {
+        runtime.log(
+          `inbox poll for ${runtime.state.workers.length} worker(s) took ${elapsed} ms — bus or CLI is slow`,
+          'warn',
+        );
       }
-      const now = Date.now();
-      if (now - (this.lastPollAt.get(projectDir) ?? 0) < runtime.config.orchestration.pollIntervalMs) {
-        continue;
-      }
-      this.lastPollAt.set(projectDir, now);
-      const started = Date.now();
-      try {
-        await this.watchers.get(projectDir)?.pollOnce();
-        const elapsed = Date.now() - started;
-        if (elapsed > 1500) {
-          runtime.log(
-            `inbox poll for ${runtime.state.workers.length} worker(s) took ${elapsed} ms — bus or CLI is slow`,
-            'warn',
-          );
-        }
-      } catch (error) {
-        runtime.log(`inbox poll failed: ${error instanceof Error ? error.message : String(error)}`, 'warn');
-      }
+    } catch (error) {
+      runtime.log(`inbox poll failed: ${error instanceof Error ? error.message : String(error)}`, 'warn');
+    } finally {
+      this.pollInFlight = false;
     }
   }
 
@@ -145,7 +193,8 @@ export default class AgentBusExtension implements Extension {
     return createTeamTools((ctx) => this.getRuntime(ctx), { canSpawn });
   }
 
-  getCommands(_context: ExtensionContext): CommandDefinition[] {
+  getCommands(context: ExtensionContext): CommandDefinition[] {
+    this.noteActiveProject(context);
     return createTeamCommands((ctx) => this.getRuntime(ctx));
   }
 
@@ -264,6 +313,7 @@ export default class AgentBusExtension implements Extension {
   getUIComponents(context: ExtensionContext): UIComponentDefinition[] {
     // A project without a team gets no panel; otherwise every project would
     // pop the floating window as soon as it is opened.
+    this.noteActiveProject(context);
     const runtime = this.tryRuntime(context);
     if (runtime && !runtime.hasTeam) {
       return [];
@@ -284,6 +334,7 @@ export default class AgentBusExtension implements Extension {
     if (componentId !== DASHBOARD_ID) {
       return undefined;
     }
+    this.noteActiveProject(context);
     const runtime = this.tryRuntime(context);
     if (!runtime) {
       return { available: false };
@@ -328,6 +379,7 @@ export default class AgentBusExtension implements Extension {
     if (componentId !== DASHBOARD_ID) {
       return undefined;
     }
+    this.noteActiveProject(context);
     const runtime = this.tryRuntime(context);
     if (!runtime) {
       return { ok: false, error: 'no project' };

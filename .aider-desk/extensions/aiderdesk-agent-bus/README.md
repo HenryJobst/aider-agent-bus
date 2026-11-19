@@ -257,6 +257,11 @@ Guards: `wakeCooldownMs` (default 60 s), `maxWakesPerTask` (default 3), never
 wake a running task, at most one wake per poll tick, and an agent that ignored
 its inbox after a wake is not woken again while the backlog stays the same.
 
+Only the project AiderDesk currently shows is polled. A project switch moves the
+poller with it; the project you left gets no polls and no wake prompts.
+`onProjectStopped` drops its cached runtime. One poll runs at a time, so a slow
+CLI cannot stack child processes.
+
 ## Code quality
 
 ESLint (flat config, typescript-eslint) and Prettier are wired in:
@@ -275,7 +280,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 135 tests, node:test + tsx
+npm test          # 140 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo
@@ -291,6 +296,8 @@ What is covered without AiderDesk:
 - worker spawning at the `ProjectContext` seam: task params, profile id,
   worktree fallback, model adoption, worker limit, non-git error message
 - wake-up guards: running task, cooldown, budget, empty inbox, broken CLI
+- polling scope: only the open project, switch moves it, project stop pauses it,
+  and overlapping polls are skipped
 - prompt content: identity, scope, isolation and safety rules
 - tool exposure: full control plane for the master, read-only for other profiles
 - every slash command against the fake host: defaults, validation errors,

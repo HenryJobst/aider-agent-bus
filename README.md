@@ -22,7 +22,7 @@ systems that already exist.
 
 **v0.2 — usable, not hardened.** Feature-complete for coordination between
 sessions; expect rough edges around merges and anything not listed as verified
-below. Covered by 135 tests: spawning tasks with profile,
+below. Covered by 140 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, every slash command and its validation, task/worktree events,
 profile overrides, dashboard gating, config/state persistence, and a real-CLI
@@ -149,6 +149,12 @@ does that:
 No worker blocks in `inbox(wait_s: 110)` — that would occupy its agent loop and
 could not be interrupted. Guards: `wakeCooldownMs`, `maxWakesPerTask`, and a
 running task is never woken.
+
+Polling is scoped to the project AiderDesk currently shows. Switching projects
+moves the poller with it; the project you left is not polled and gets no wake
+prompts (its join table stays on disk). `onProjectStopped` drops the runtime for
+that project entirely. A poll that is still running blocks the next tick, so a
+slow bus cannot stack `agent-bus` child processes.
 
 ## Use cases
 
@@ -311,7 +317,7 @@ npm run sync    # copy into ~/.aider-desk/extensions (reloads every extension!)
 AiderDesk reloads **all** extensions whenever a file under
 `~/.aider-desk/extensions/` changes. Sync deliberately, not on every save.
 
-135 tests, ESLint + Prettier configured:
+140 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|
@@ -342,6 +348,7 @@ worktree rules) are documented in [`AGENTS.md`](AGENTS.md) and the
 | `Exception in connector … scipy … _spropack` in AiderDesk | the app's Python venv ships a scipy build the OS loader rejects (not this extension) | pin a working scipy in `~/Library/Application Support/aider-desk/python-venv`, or disable the repo map |
 | app feels hung, many agent runs, `woke …` repeats in the log | wake loop: agents ignore their inbox, each wake is a full agent run | mute the agent (`/agent-bus-pause`), raise `wakeCooldownMs`, lower `maxWakesPerTask`; 0.2 parks such agents after the budget |
 | log shows `inbox poll … took N ms` | the bus CLI is slow, so each poll blocks the extension | check `agentBus.nodeBinary`, number of workers, and whether the bus database is locked by another process |
+| app hangs right after switching projects | background polls and wake prompts for the project you left, or a slow/full disk | 0.2 polls only the open project and pauses on `onProjectStopped`; check free disk space — wake prompts and `execFile` both need it |
 | panel does not appear | project has no team yet | run `/agent-bus-init`, the panel is registered once a master or worker exists |
 
 ## License

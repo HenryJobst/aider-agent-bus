@@ -33,7 +33,7 @@ export interface TestHost {
   busCalls: () => string[];
 }
 
-function fakeBus(projectDir: string, inboxMissing: boolean): string {
+function fakeBus(projectDir: string, inboxMissing: boolean, delayMs: number): string {
   const path = join(projectDir, 'fake-bus.cjs');
   writeFileSync(
     path,
@@ -42,18 +42,25 @@ const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
 fs.appendFileSync(path.join(__dirname, 'bus-calls.log'), args.join(' ') + '\\n');
-if (args.includes('inbox-status')) {
-  if (${inboxMissing}) {
-    process.stderr.write("agent 'x' is not registered");
-    process.exit(1);
+const reply = () => {
+  if (args.includes('inbox-status')) {
+    if (${inboxMissing}) {
+      process.stderr.write("agent 'x' is not registered");
+      process.exit(1);
+    }
+    process.stdout.write(JSON.stringify({ unread: 0, claimed: 0, delivered: 0 }));
+  } else if (args.includes('log')) {
+    process.stdout.write('message from fake bus');
+  } else if (args.includes('inject')) {
+    process.stdout.write('injected');
+  } else {
+    process.stdout.write('ok');
   }
-  process.stdout.write(JSON.stringify({ unread: 0, claimed: 0, delivered: 0 }));
-} else if (args.includes('log')) {
-  process.stdout.write('message from fake bus');
-} else if (args.includes('inject')) {
-  process.stdout.write('injected');
+};
+if (${delayMs} > 0) {
+  setTimeout(reply, ${delayMs});
 } else {
-  process.stdout.write('ok');
+  reply();
 }
 `,
     'utf-8',
@@ -66,6 +73,8 @@ export interface HostOptions {
   config?: Record<string, unknown>;
   /** Simulate a bus where nobody ever registered (`inbox-status` fails). */
   inboxMissing?: boolean;
+  /** Make the fake CLI slow, to exercise overlapping polls. */
+  delayMs?: number;
 }
 
 export function makeHost(options: HostOptions = {}): TestHost {
@@ -77,7 +86,7 @@ export function makeHost(options: HostOptions = {}): TestHost {
       team: 'test-team',
       agentBus: {
         project: 'test-project',
-        binary: fakeBus(projectDir, options.inboxMissing ?? false),
+        binary: fakeBus(projectDir, options.inboxMissing ?? false, options.delayMs ?? 0),
         nodeBinary: process.execPath,
       },
       isolation: { mode: 'shared' },
