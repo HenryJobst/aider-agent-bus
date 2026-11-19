@@ -22,7 +22,7 @@ zwischen zwei Systemen, die es schon gibt.
 
 **v0.2 — nutzbar, nicht gehärtet.** Für die Abstimmung zwischen Sessions
 funktional vollständig; mit rauen Kanten bei Merges und allem, was unten nicht
-als verifiziert aufgeführt ist. Abgedeckt durch 87 Tests: Tasks mit Profil,
+als verifiziert aufgeführt ist. Abgedeckt durch 105 Tests: Tasks mit Profil,
 Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
 Inbox-Polling und Aufwecken, Team-Commands/-Tools, Dashboard, Config-/State-
 Persistenz und ein Integrationstest gegen die echte CLI.
@@ -313,13 +313,16 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-87 Tests, ESLint + Prettier eingerichtet:
+105 Tests, ESLint + Prettier eingerichtet:
 
 | Suite | Deckt ab |
 |---|---|
 | Unit | Config-Merge/-Clamping, State-Join-Table, Prompt-Inhalte, Inbox-Status-Normalisierung |
 | Seam | Spawnen und Adoptieren gegen gefälschte `ProjectContext`/`TaskContext`, Worktree-Fallback, Master-only-Tools |
-| Wake-up | laufende Task, Cooldown, Budget, leere Inbox, kaputte CLI |
+| Wake-up | laufende Task, Cooldown, Budget, Parken ohne Fortschritt, leere Inbox, kaputte CLI |
+| Host | Tools, Panel-Daten und jede Panel-Action (refresh, stop, stop all, stumm, remove, set-config) gegen einen Fake-Host |
+| Drift | Metadata-Version vs. `package.json`, vollständige Profilform, Command-Parität zwischen englischer und deutscher README |
+| Wake integriert | echte CLI und Bus-DB: eine zugestellte Nachricht weckt genau einmal, ein stummer Worker nie |
 | Integration | echte CLI in einem Wegwerf-`AGENT_BUS_DIR`: zwei Identitäten registrieren, Nachricht, Unread-Zähler, Scope-Isolation; wird ohne CLI übersprungen |
 
 Design-Entscheidungen und Stolperfallen (expliziter Bus-Scope, keine

@@ -22,7 +22,7 @@ systems that already exist.
 
 **v0.2 — usable, not hardened.** Feature-complete for coordination between
 sessions; expect rough edges around merges and anything not listed as verified
-below. Covered by 87 tests: spawning tasks with profile,
+below. Covered by 105 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, team commands/tools, dashboard, config/state persistence, and a
 real-CLI integration test.
@@ -302,13 +302,16 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-87 tests, ESLint + Prettier configured:
+105 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|
 | unit | config merge/clamping, state join table, prompt content, inbox-status normalization |
 | seam | spawning and adopting tasks against fake `ProjectContext`/`TaskContext`, worktree fallback, master-only tools |
-| wake-up | running task, cooldown, budget, empty inbox, broken CLI |
+| wake-up | running task, cooldown, budget, no-progress parking, empty inbox, broken CLI |
+| host | tools, panel data and every panel action (refresh, stop, stop-all, mute, remove, set-config) against a fake host context |
+| drift | metadata version vs `package.json`, full profile shape, command parity between the English and German README |
+| wake integrated | real CLI and bus database: a delivered message wakes exactly once, a muted worker never |
 | integration | real CLI in a throwaway `AGENT_BUS_DIR`: two identities register, message, unread counts, scope isolation; skips when the CLI is absent |
 
 Design decisions and pitfalls (explicit bus scope, no blocking inbox waits,
