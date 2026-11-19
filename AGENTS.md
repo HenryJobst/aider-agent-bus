@@ -134,8 +134,11 @@ Mutation testing runs Stryker with the Vitest runner on one module at a time
 total / 57 % covered and reached 77 % / 81 % after the first gap-closing pass
 (276 mutants); `state.ts` went from 74 % to 93 % by testing persistence
 (`setMaster`, `clearMaster`, `upsert`, `updateWorker`, `reconcile`) instead of
-only in-memory state. What remains is mostly log strings, return-value mutants
-and equivalent guards (two marked with `// Stryker disable all`). Keep it out of `npm run check`: a run takes minutes, and
+only in-memory state; `config.ts` went from 63 % to 87 % by testing merge and
+normalize edge cases (non-object patches, whitespace-only identity fields,
+wrong types) and every value spelling. What remains is mostly log strings,
+return-value mutants and equivalent guards (two marked with
+`// Stryker disable all`). Keep it out of `npm run check`: a run takes minutes, and
 `vitest.related` also pulls in tests that reach the module indirectly, so the
 score covers more than the module's own test file.
 

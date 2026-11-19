@@ -142,3 +142,121 @@ test('defaultConfig keeps worktree isolation as the recommendation', () => {
   assert.equal(config.orchestration.requireReview, true);
   assert.equal(config.orchestration.peerToPeerEnabled, true);
 });
+
+test('a non-object config file falls back to defaults', () => {
+  for (const content of ['[]', 'null', '"text"']) {
+    const projectDir = tempProject();
+    writeConfig(projectDir, content);
+
+    const { config, error } = loadConfig(projectDir);
+
+    assert.equal(config.isolation.mode, 'worktree', content);
+    assert.equal(error, undefined, content);
+  }
+});
+
+test('a nested null field is caught instead of crashing', () => {
+  const projectDir = tempProject();
+  writeConfig(projectDir, JSON.stringify({ isolation: null }));
+
+  const { config, error } = loadConfig(projectDir);
+
+  assert.equal(config.isolation.mode, 'worktree');
+  assert.match(error ?? '', /Cannot parse/);
+});
+
+test('empty or wrong-typed identity fields fall back to defaults', () => {
+  const projectDir = tempProject();
+  writeConfig(
+    projectDir,
+    JSON.stringify({
+      team: 42,
+      mcpServerName: '',
+      agentBus: { project: '', binary: '', nodeBinary: '' },
+      isolation: { mergeStrategy: 'bogus' },
+      orchestration: { trackTasks: 'yes' },
+    }),
+  );
+
+  const { config } = loadConfig(projectDir);
+
+  assert.equal(config.team, 'default-team');
+  assert.equal(config.mcpServerName, 'agent-bus');
+  assert.equal(config.agentBus.project, 'project');
+  assert.equal(config.agentBus.binary, 'agent-bus');
+  assert.equal(config.agentBus.nodeBinary, undefined);
+  assert.equal(config.isolation.mergeStrategy, 'manual');
+  assert.equal(config.orchestration.trackTasks, true);
+});
+
+test('boolean values accept all documented spellings', () => {
+  const projectDir = tempProject();
+
+  for (const raw of ['on', 'YES', '1', ' true ']) {
+    assert.equal(setConfigValue(projectDir, 'orchestration.trackTasks', raw).value, true, raw);
+  }
+  for (const raw of ['off', 'NO', '0', ' false ']) {
+    assert.equal(setConfigValue(projectDir, 'orchestration.trackTasks', raw).value, false, raw);
+  }
+  assert.match(setConfigValue(projectDir, 'orchestration.trackTasks', 'maybe').error ?? '', /expects true or false/);
+});
+
+test('integer values accept strings and reject non-numbers', () => {
+  const projectDir = tempProject();
+
+  assert.equal(setConfigValue(projectDir, 'orchestration.maxWorkers', '7').value, 7);
+  assert.match(setConfigValue(projectDir, 'orchestration.maxWorkers', 'many').error ?? '', /expects a number/);
+});
+
+test('setConfigValue replaces a non-object root and a broken intermediate', () => {
+  const projectDir = tempProject();
+
+  writeConfig(projectDir, '[]');
+  assert.equal(setConfigValue(projectDir, 'team', 'x').ok, true);
+  assert.equal(loadConfig(projectDir).config.team, 'x');
+
+  writeConfig(projectDir, JSON.stringify({ agentBus: 'broken' }));
+  assert.equal(setConfigValue(projectDir, 'agentBus.project', 'p').ok, true);
+  assert.equal(loadConfig(projectDir).config.agentBus.project, 'p');
+});
+
+test('enum values are trimmed before validation', () => {
+  const projectDir = tempProject();
+
+  assert.equal(setConfigValue(projectDir, 'isolation.mode', ' shared ').value, 'shared');
+});
+
+test('defaultProjectName handles trailing separators and bare roots', () => {
+  assert.equal(defaultConfig('/tmp/my-repo/').agentBus.project, 'my-repo');
+  assert.equal(defaultConfig('/').agentBus.project, 'project');
+});
+
+test('auto merge strategy and hybrid isolation stay as configured', () => {
+  const projectDir = tempProject();
+  writeConfig(projectDir, JSON.stringify({ isolation: { mode: 'hybrid', mergeStrategy: 'auto' } }));
+
+  const { config } = loadConfig(projectDir);
+
+  assert.equal(config.isolation.mode, 'hybrid');
+  assert.equal(config.isolation.mergeStrategy, 'auto');
+});
+
+test('whitespace-only identity fields fall back to defaults', () => {
+  const projectDir = tempProject();
+  writeConfig(
+    projectDir,
+    JSON.stringify({
+      team: '  ',
+      mcpServerName: 42,
+      agentBus: { project: ' ', binary: ' ', nodeBinary: '  ' },
+    }),
+  );
+
+  const { config } = loadConfig(projectDir);
+
+  assert.equal(config.team, 'default-team');
+  assert.equal(config.mcpServerName, 'agent-bus');
+  assert.equal(config.agentBus.project, 'project');
+  assert.equal(config.agentBus.binary, 'agent-bus');
+  assert.equal(config.agentBus.nodeBinary, undefined);
+});
