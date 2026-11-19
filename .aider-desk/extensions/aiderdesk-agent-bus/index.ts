@@ -250,7 +250,7 @@ export default class AgentBusExtension implements Extension {
       {
         id: DASHBOARD_ID,
         name: 'Agent Bus',
-        placement: 'project-floating',
+        placement: 'tasks-sidebar-bottom',
         jsx: readFileSync(join(__dirname, './src/ui/Dashboard.jsx'), 'utf-8'),
         loadData: true,
       },

@@ -46,7 +46,7 @@ AGENTS.md                          this file
     src/orchestration/{team,wakeup}.ts
     src/profiles.ts                master / developer / reviewer / analyst profiles
     src/tools.ts, src/commands.ts  control plane
-    src/ui/Dashboard.jsx           project-floating dashboard
+    src/ui/Dashboard.jsx           dashboard docked in the tasks sidebar
     tests/                         node:test suite + fakes + real-CLI integration test
 ```
 

@@ -1,16 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions -- AiderDesk evaluates this file as one component expression */
 /**
- * Agent Bus dashboard (project-floating placement).
+ * Agent Bus dashboard, docked at the bottom of the tasks sidebar.
  *
- * React is globally available; props come from getUIExtensionData().
+ * The sidebar is narrow, so this renders as a compact status strip: one row
+ * per agent, unread badges, and a refresh action. React is globally available.
  */
 (props) => {
   const { data, ui, icons, executeExtensionAction } = props;
   const { Button } = ui;
-  const { FiRefreshCw, FiGitBranch } = icons.Fi;
+  const { FiRefreshCw } = icons.Fi;
+  const [note, setNote] = React.useState(null);
+  const [expanded, setExpanded] = React.useState(true);
 
   if (!data || data.available === false) {
-    return <div className="p-3 text-xs text-text-secondary">Open a project to use the agent-bus team dashboard.</div>;
+    return null;
   }
 
   const statusColor = (status) => {
@@ -23,12 +26,11 @@
   const workers = data.workers || [];
   const active = workers.filter((worker) => worker.status === 'working').length;
   const unread = workers.reduce((sum, worker) => sum + (worker.unread || 0), 0);
-  const [note, setNote] = React.useState(null);
 
   const refresh = async () => {
     setNote('refreshing…');
     const result = await executeExtensionAction('refresh');
-    setNote(result && result.ok ? `refreshed · ${result.registered}/${result.total} registered` : 'refresh failed');
+    setNote(result && result.ok ? `${result.registered}/${result.total} registered` : 'refresh failed');
   };
 
   const stopWorker = async (agentName) => {
@@ -36,73 +38,59 @@
     const result = await executeExtensionAction('stop-worker', agentName);
     setNote(
       result && result.ok
-        ? `${agentName}: interrupted`
+        ? `${agentName}: stopped`
         : `${agentName}: ${result && result.error ? result.error : 'stop failed'}`,
     );
   };
 
   return (
-    <div className="flex flex-col gap-3 p-3 text-xs">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-sm font-semibold text-text-primary">{data.project}</div>
-          <div className="text-text-secondary">
-            {data.team} · {data.isolation}
-          </div>
-        </div>
-        <Button size="xs" variant="outline" onClick={refresh}>
+    <div className="flex flex-col gap-1 border-t border-border bg-bg-secondary px-2 py-1 text-2xs">
+      <div className="flex items-center gap-2">
+        <span className="truncate font-medium text-text-primary">Agent Bus</span>
+        <span className="text-text-secondary">
+          {active}/{workers.length} active
+        </span>
+        {unread > 0 ? <span className="rounded bg-primary/20 px-1 text-primary">{unread}</span> : null}
+        <span className="flex-1" />
+        <Button size="xs" variant="outline" onClick={refresh} title="Read registration state from the bus">
           <FiRefreshCw className="w-3 h-3" />
+        </Button>
+        <Button size="xs" variant="outline" onClick={() => setExpanded(!expanded)}>
+          {expanded ? '–' : '+'}
         </Button>
       </div>
 
-      {data.configError ? <div className="rounded bg-error/10 p-2 text-error">{data.configError}</div> : null}
+      {expanded ? (
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="truncate text-text-primary">{data.master ? data.master.agentName : 'no master'}</span>
+          </div>
 
-      {!data.enabled ? (
-        <div className="rounded bg-warning/10 p-2 text-warning">
-          agent-bus is disabled in .aider-desk/agent-bus.json
+          {workers.map((worker) => (
+            <div key={worker.taskId} className="flex items-center gap-1">
+              <span className={'h-1.5 w-1.5 shrink-0 rounded-full ' + statusColor(worker.status)} />
+              <span className="truncate text-text-primary">{worker.agentName}</span>
+              {worker.unread > 0 ? <span className="text-primary">{worker.unread}</span> : null}
+              <span className="flex-1" />
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={worker.status !== 'working' && worker.status !== 'starting'}
+                onClick={() => stopWorker(worker.agentName)}
+              >
+                stop
+              </Button>
+            </div>
+          ))}
+
+          {workers.length === 0 ? <span className="text-text-secondary">No workers</span> : null}
         </div>
       ) : null}
 
-      <div className="flex gap-3 text-text-secondary">
-        <span>agents {workers.length + (data.master ? 1 : 0)}</span>
-        <span>active {active}</span>
-        <span>unread {unread}</span>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-primary" />
-          <span className="font-medium text-text-primary">{data.master ? data.master.agentName : 'no master'}</span>
-          <span className="text-text-secondary">master</span>
-        </div>
-
-        {workers.map((worker) => (
-          <div key={worker.taskId} className="flex items-center justify-between gap-2 rounded p-1 hover:bg-bg-tertiary">
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              <span className={'h-2 w-2 rounded-full ' + statusColor(worker.status)} />
-              <span className="truncate font-medium text-text-primary">{worker.agentName}</span>
-              <span className="text-text-secondary">{worker.role}</span>
-              {worker.worktree ? <FiGitBranch className="h-3 w-3 text-text-secondary" /> : null}
-              {worker.unread > 0 ? (
-                <span className="rounded bg-primary/20 px-1 text-primary">{worker.unread}</span>
-              ) : null}
-              {worker.error ? <span className="truncate text-error">{worker.error}</span> : null}
-            </div>
-            <Button
-              size="xs"
-              variant="outline"
-              disabled={worker.status !== 'working' && worker.status !== 'starting'}
-              onClick={() => stopWorker(worker.agentName)}
-            >
-              stop
-            </Button>
-          </div>
-        ))}
-
-        {workers.length === 0 ? <div className="text-text-secondary">No workers yet. Use /agent-bus-spawn.</div> : null}
-      </div>
-
-      {note ? <div className="rounded bg-bg-tertiary p-1 text-text-secondary">{note}</div> : null}
+      {data.configError ? <span className="truncate text-error">{data.configError}</span> : null}
+      {!data.enabled ? <span className="text-warning">agent-bus disabled</span> : null}
+      {note ? <span className="truncate text-text-secondary">{note}</span> : null}
     </div>
   );
 };

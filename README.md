@@ -153,7 +153,7 @@ AGENTS.md                                  instructions for agents (repo + team 
   index.ts                                 Extension: tools, commands, events, UI
   src/{bus,core,orchestration}/            BusClient, config, state, spawn, wake-up
   src/{profiles,tools,commands}.ts         agent profiles and control plane
-  src/ui/Dashboard.jsx                     project-floating dashboard
+  src/ui/Dashboard.jsx                     dashboard docked in the tasks sidebar
   tests/                                   node:test suite + fakes + real-CLI integration
   README.md                                extension reference
 ```

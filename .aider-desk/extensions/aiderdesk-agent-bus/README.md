@@ -46,7 +46,7 @@ members — live in [`AGENTS.md`](../../../AGENTS.md) at the repository root.
 | Slash commands | init, team overview, spawn, stop |
 | Agent profiles | master, developer, reviewer, analyst |
 | Events | agent start/finish, task close, worktree created/merged |
-| UI | `project-floating` dashboard with roster and unread counters |
+| UI | dashboard docked at the bottom of the tasks sidebar (roster, unread, stop) |
 
 Messaging itself is **not** reimplemented: agents use the agent-bus MCP tools
 (`register`, `send`, `ask`, `reply`, `delegate`, `now`, `team_board`, …).
@@ -108,12 +108,11 @@ Extension tools (master profile only; other profiles get `agent_bus_get_team`):
 | `agent_bus_get_team` | — | roster plus resolved config |
 | `agent_bus_stop_worker` | `worker` | interrupt by agent name, display name or task id |
 
-Dashboard (`project-floating`, title **Agent Bus**): agent roster with status
-dots, unread badges, per-worker `stop`, and a refresh action that polls the bus
-immediately. It is only registered for projects that already have a team
+Dashboard (`tasks-sidebar-bottom`): a compact strip at the bottom of the tasks
+sidebar with status dots, unread badges, per-worker `stop`, collapse and a
+refresh action that reports how many identities are registered on the bus. It is only registered for projects that already have a team
 (master or workers); an uninitialised project does not get a floating panel.
-The panel is minimised/dragged like any other AiderDesk floating window and
-remembers its position per project.
+It is docked, not a floating window, so it does not cover the chat.
 
 Worker identity is `"<project>-<name>"`, e.g. `webshop-backend`. Each spawned
 task is started with a registration prompt that contains the exact `register`
