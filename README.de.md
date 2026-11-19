@@ -311,7 +311,7 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-79 Tests, ESLint + Prettier eingerichtet:
+87 Tests, ESLint + Prettier eingerichtet:
 
 | Suite | Deckt ab |
 |---|---|
