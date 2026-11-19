@@ -22,10 +22,11 @@ zwischen zwei Systemen, die es schon gibt.
 
 **v0.2 — nutzbar, nicht gehärtet.** Für die Abstimmung zwischen Sessions
 funktional vollständig; mit rauen Kanten bei Merges und allem, was unten nicht
-als verifiziert aufgeführt ist. Abgedeckt durch 105 Tests: Tasks mit Profil,
+als verifiziert aufgeführt ist. Abgedeckt durch 135 Tests: Tasks mit Profil,
 Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
-Inbox-Polling und Aufwecken, Team-Commands/-Tools, Dashboard, Config-/State-
-Persistenz und ein Integrationstest gegen die echte CLI.
+Inbox-Polling und Aufwecken, jeder Slash-Command samt Validierung, Task- und
+Worktree-Events, Profil-Overrides, Dashboard-Gating, Config-/State-Persistenz
+und ein Integrationstest gegen die echte CLI.
 
 Live verifiziert: Extension-Laden, Command-Ausführung, Config-/State-Schreiben,
 Registrierung der Agenten auf dem Bus, Panel-Refresh, Adoption inklusive
@@ -317,7 +318,7 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-105 Tests, ESLint + Prettier eingerichtet:
+135 Tests, ESLint + Prettier eingerichtet:
 
 | Suite | Deckt ab |
 |---|---|
@@ -325,6 +326,8 @@ npm run check   # format:check + lint + typecheck + tests
 | Seam | Spawnen und Adoptieren gegen gefälschte `ProjectContext`/`TaskContext`, Worktree-Fallback, Master-only-Tools |
 | Wake-up | laufende Task, Cooldown, Budget, Parken ohne Fortschritt, leere Inbox, kaputte CLI |
 | Host | Tools, Panel-Daten und jede Panel-Action (refresh, stop, stop all, stumm, remove, set-config) gegen einen Fake-Host |
+| Commands | jeder `/agent-bus-*`-Command: Argument-Parsing, Defaults, Rückfragen, Clamping und die ausgelösten Bus-Aufrufe |
+| Lifecycle | Task-Closed- und Worktree-Events, Profil-Overrides und gelernte Defaults, UI-Gating, Timer-Ersatz beim Reload |
 | Drift | Metadata-Version vs. `package.json`, vollständige Profilform, Command-Parität zwischen englischer und deutscher README |
 | Wake integriert | echte CLI und Bus-DB: eine zugestellte Nachricht weckt genau einmal, ein stummer Worker nie |
 | Integration | echte CLI in einem Wegwerf-`AGENT_BUS_DIR`: zwei Identitäten registrieren, Nachricht, Unread-Zähler, Scope-Isolation; wird ohne CLI übersprungen |
