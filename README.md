@@ -31,8 +31,12 @@ Verified on the live app: extension load, command execution, config/state
 writes, agents registering on the bus, panel refresh, adoption including the
 worktree switch, and a master that delegates board tasks which workers claim.
 
+Panel actions — stop, stop all, mute, remove, set-config and click-to-open — are
+covered by host-level tests against the real extension code, but have not been
+clicked in the running UI yet.
+
 Still unverified: a delegated work package finished end to end with review and
-merge, and the panel's stop/stop-all/mute/click-to-open paths.
+merge.
 
 ## Install
 

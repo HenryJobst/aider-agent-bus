@@ -32,8 +32,12 @@ Registrierung der Agenten auf dem Bus, Panel-Refresh, Adoption inklusive
 Worktree-Wechsel sowie ein Master, der Board-Tasks delegiert und Worker, die sie
 claimen.
 
+Panel-Aktionen – stop, stop all, stumm, remove, set-config und Klick-zum-Öffnen –
+sind durch Host-Tests gegen den echten Extension-Code abgedeckt, wurden aber noch
+nicht in der laufenden UI geklickt.
+
 Noch ungeprüft: ein delegiertes Arbeitspaket, das mit Review und Merge
-durchläuft, und die Panel-Pfade stop / stop all / stumm / Klick-zum-Öffnen.
+durchläuft.
 
 ## Installation
 
