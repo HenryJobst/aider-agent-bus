@@ -125,9 +125,18 @@ running task is never woken.
 
 ## Use cases
 
+**How to read the snippets here.** Each JSON block is a *partial*
+`.aider-desk/agent-bus.json`, not a complete file. Merge the keys into your
+existing file and leave everything else alone — omitted keys keep their defaults.
+Start from `.aider-desk/agent-bus.example.json` if the file does not exist yet.
+The file is gitignored; a restart is not needed, the extension reloads it when it
+changes.
+
 ### 1. Sessions only need to coordinate
 
 No board, no task ownership — just messages. This is the lightest setup.
+
+In `.aider-desk/agent-bus.json`:
 
 ```json
 { "orchestration": { "trackTasks": false, "peerToPeerEnabled": true } }
@@ -145,6 +154,8 @@ Verify: `/agent-bus-doctor` shows all identities `registered`; the sidebar shows
 ### 2. A work package needs its own worker
 
 Use when work should happen in an isolated copy of the repo.
+
+In `.aider-desk/agent-bus.json`:
 
 ```json
 { "isolation": { "mode": "worktree" } }
@@ -174,6 +185,8 @@ bus.
 
 Only worth it when several work items run in parallel and you want a board.
 
+In `.aider-desk/agent-bus.json`:
+
 ```json
 { "orchestration": { "trackTasks": true, "requireReview": true } }
 ```
@@ -195,6 +208,8 @@ Verify: `agent-bus tasks --project <p> --team <t>`, board status in the panel.
 | Whole team done | remove/stop all, then close the tasks in AiderDesk |
 
 ### 6. No git repository (analysis, docs, someone else's project)
+
+In `.aider-desk/agent-bus.json`:
 
 ```json
 { "isolation": { "mode": "shared" } }

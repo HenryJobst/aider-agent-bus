@@ -11,7 +11,7 @@ import { ROLE_PROFILE_IDS, buildProfiles, resolveRole } from '../profiles.js';
 import type { ProfileDefaults } from '../profiles.js';
 import { AgentBusState } from './state.js';
 import type { WorkerRecord } from './state.js';
-import { loadConfig } from './config.js';
+import { configMtime, loadConfig } from './config.js';
 import type { AgentBusConfig } from './config.js';
 
 export interface RuntimeLog {
@@ -24,6 +24,7 @@ export class ProjectRuntime {
 
   config: AgentBusConfig;
   configExists: boolean;
+  configMtime?: number;
   configError?: string;
   state: AgentBusState;
   bus: BusClient;
@@ -41,6 +42,7 @@ export class ProjectRuntime {
     const loaded = loadConfig(this.projectDir);
     this.config = loaded.config;
     this.configExists = loaded.exists;
+    this.configMtime = configMtime(this.projectDir);
     this.configError = loaded.error;
 
     this.state = new AgentBusState(this.projectDir, this.config.agentBus.project, this.config.team);
@@ -76,6 +78,7 @@ export class ProjectRuntime {
     const loaded = loadConfig(this.projectDir);
     this.config = loaded.config;
     this.configExists = loaded.exists;
+    this.configMtime = configMtime(this.projectDir);
     this.configError = loaded.error;
     this.bus = this.createBus();
     this.state.setScope(this.config.agentBus.project, this.config.team);

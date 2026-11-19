@@ -26,7 +26,7 @@ import type {
 } from '@aiderdesk/extensions';
 
 import { createTeamCommands } from './src/commands.js';
-import { configPath } from './src/core/config.js';
+import { configMtime, configPath } from './src/core/config.js';
 import { ProjectRuntime } from './src/core/runtime.js';
 import { removeWorker, stopWorker } from './src/orchestration/team.js';
 import { checkRegistration, collectHealth } from './src/orchestration/doctor.js';
@@ -82,7 +82,12 @@ export default class AgentBusExtension implements Extension {
       if (runtime.configError) {
         runtime.log(runtime.configError, 'warn');
       }
-    } else if (!runtime.configError && existsSync(configPath(projectDir)) !== runtime.configExists) {
+    } else if (
+      existsSync(configPath(projectDir)) !== runtime.configExists ||
+      configMtime(projectDir) !== runtime.configMtime
+    ) {
+      // Editing .aider-desk/agent-bus.json applies on the next action instead of
+      // requiring an extension reload.
       runtime.reload();
     }
     return runtime;

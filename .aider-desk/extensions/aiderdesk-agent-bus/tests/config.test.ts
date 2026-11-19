@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 
-import { configPath, defaultConfig, loadConfig } from '../src/core/config.js';
+import { configMtime, configPath, defaultConfig, loadConfig } from '../src/core/config.js';
 
 function tempProject(): string {
   return mkdtempSync(join(tmpdir(), 'agent-bus-config-'));
@@ -75,6 +75,16 @@ test('out-of-range and unknown values are normalized', () => {
   assert.equal(config.orchestration.maxWakesPerTask, 1000);
   assert.equal(config.agentBus.project, 'project');
   assert.equal(config.agentBus.binary, 'agent-bus');
+});
+
+test('configMtime is undefined without a file and a number with one', () => {
+  const projectDir = tempProject();
+
+  assert.equal(configMtime(projectDir), undefined);
+
+  writeConfig(projectDir, '{}');
+
+  assert.equal(typeof configMtime(projectDir), 'number');
 });
 
 test('defaultConfig keeps worktree isolation as the recommendation', () => {

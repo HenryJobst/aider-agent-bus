@@ -5,7 +5,7 @@
  * by hand: a malformed config must never prevent AiderDesk from loading.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 export type IsolationMode = 'worktree' | 'shared' | 'hybrid';
@@ -168,6 +168,15 @@ export function loadConfig(projectDir: string): LoadResult {
       exists: true,
       error: `Cannot parse ${path}: ${error instanceof Error ? error.message : String(error)}`,
     };
+  }
+}
+
+/** Modification time of the config file, used to reload it without an extension reload. */
+export function configMtime(projectDir: string): number | undefined {
+  try {
+    return statSync(configPath(projectDir)).mtimeMs;
+  } catch {
+    return undefined;
   }
 }
 
