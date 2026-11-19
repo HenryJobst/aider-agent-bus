@@ -73,6 +73,7 @@ project only the global one is loaded.
 | `/agent-bus-join [name] [role]` | adopt the current task; defaults: task name as identity, role from profile or task name |
 | `/agent-bus-team` | roster, roles, task ids, worktrees, unread counts |
 | `/agent-bus-doctor` | bus-side truth: registered / NOT registered per identity |
+| `/agent-bus-config [key] [value]` | show or change one validated setting without editing JSON |
 | `/agent-bus-stop <name>` | interrupt a worker, keep the registration |
 | `/agent-bus-remove <name>` | remove a participant (bus registration + wake-ups); task stays open |
 

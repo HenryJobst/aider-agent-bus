@@ -186,3 +186,140 @@ export function writeDefaultConfig(projectDir: string, config: AgentBusConfig): 
   writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
   return path;
 }
+
+type ValueKind = 'boolean' | 'integer' | 'string' | readonly string[];
+
+/**
+ * Keys that can be changed through `/agent-bus-config`. A whitelist keeps the
+ * command from writing arbitrary JSON into a file the extension has to trust.
+ */
+export const SETTABLE_KEYS: Record<string, ValueKind> = {
+  enabled: 'boolean',
+  team: 'string',
+  mcpServerName: 'string',
+  'agentBus.project': 'string',
+  'agentBus.area': 'string',
+  'agentBus.binary': 'string',
+  'agentBus.nodeBinary': 'string',
+  'isolation.mode': ['worktree', 'shared', 'hybrid'],
+  'isolation.mergeStrategy': ['manual', 'auto'],
+  'orchestration.masterEnabled': 'boolean',
+  'orchestration.peerToPeerEnabled': 'boolean',
+  'orchestration.trackTasks': 'boolean',
+  'orchestration.requireReview': 'boolean',
+  'orchestration.maxWorkers': 'integer',
+  'orchestration.pollIntervalMs': 'integer',
+  'orchestration.wakeCooldownMs': 'integer',
+  'orchestration.maxWakesPerTask': 'integer',
+  'profiles.provider': 'string',
+  'profiles.model': 'string',
+  'profiles.maxIterations': 'integer',
+};
+
+function parseValue(key: string, kind: ValueKind, raw: string): { value?: unknown; error?: string } {
+  if (kind === 'boolean') {
+    const normalized = raw.trim().toLowerCase();
+    if (['true', 'on', 'yes', '1'].includes(normalized)) {
+      return { value: true };
+    }
+    if (['false', 'off', 'no', '0'].includes(normalized)) {
+      return { value: false };
+    }
+    return { error: `${key} expects true or false, got "${raw}"` };
+  }
+
+  if (kind === 'integer') {
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed)) {
+      return { error: `${key} expects a number, got "${raw}"` };
+    }
+    return { value: parsed };
+  }
+
+  if (Array.isArray(kind)) {
+    const normalized = raw.trim();
+    if (!kind.includes(normalized)) {
+      return { error: `${key} expects one of ${kind.join(', ')}, got "${raw}"` };
+    }
+    return { value: normalized };
+  }
+
+  return { value: raw };
+}
+
+function setPath(target: Record<string, unknown>, parts: string[], value: unknown): void {
+  let current = target;
+  for (const part of parts.slice(0, -1)) {
+    const next = current[part];
+    if (!next || typeof next !== 'object' || Array.isArray(next)) {
+      current[part] = {};
+    }
+    current = current[part] as Record<string, unknown>;
+  }
+  current[parts[parts.length - 1]] = value;
+}
+
+/**
+ * Writes one key into the project config, creating the file when needed.
+ * Returns the value that is effective after normalization (clamping, defaults).
+ */
+export function setConfigValue(
+  projectDir: string,
+  key: string,
+  raw: string,
+): { ok: boolean; key: string; value?: unknown; error?: string } {
+  const kind = SETTABLE_KEYS[key];
+  if (!kind) {
+    return { ok: false, key, error: `unknown key "${key}" — try ${Object.keys(SETTABLE_KEYS).join(', ')}` };
+  }
+
+  const parsed = parseValue(key, kind, raw);
+  if (parsed.error) {
+    return { ok: false, key, error: parsed.error };
+  }
+
+  const path = configPath(projectDir);
+  let existing: Record<string, unknown> = {};
+  if (existsSync(path)) {
+    try {
+      const parsedFile = JSON.parse(readFileSync(path, 'utf-8')) as unknown;
+      if (parsedFile && typeof parsedFile === 'object' && !Array.isArray(parsedFile)) {
+        existing = parsedFile as Record<string, unknown>;
+      }
+    } catch {
+      // Keep a broken file as-is instead of silently discarding the user's edits.
+      return { ok: false, key, error: `${path} is not valid JSON; fix it first` };
+    }
+  }
+
+  setPath(existing, key.split('.'), parsed.value);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(existing, null, 2)}\n`, 'utf-8');
+
+  const effective = loadConfig(projectDir).config;
+  const parts = key.split('.');
+  let current: unknown = effective;
+  for (const part of parts) {
+    current = current && typeof current === 'object' ? (current as Record<string, unknown>)[part] : undefined;
+  }
+
+  return { ok: true, key, value: current };
+}
+
+/** Flattens the effective config into dotted `key = value` lines for display. */
+export function flattenConfig(config: AgentBusConfig): Array<[string, string]> {
+  const rows: Array<[string, string]> = [];
+  const walk = (value: unknown, prefix: string): void => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+        walk(child, prefix ? `${prefix}.${key}` : key);
+      }
+      return;
+    }
+    if (value !== undefined) {
+      rows.push([prefix, JSON.stringify(value)]);
+    }
+  };
+  walk(config, '');
+  return rows;
+}

@@ -94,6 +94,7 @@ Commands (run in the master task):
 | `/agent-bus-init` | write the config, switch this task to the master profile (model preserved), register it as master, queue its bus registration and report `bus:`/`mcp:` health |
 | `/agent-bus-team` | master, workers, roles, task ids, worktrees, unread counts |
 | `/agent-bus-doctor` | whether each identity is actually registered on the bus, plus `mcp:` state |
+| `/agent-bus-config [key] [value]` | show effective settings or change one validated key |
 | `/agent-bus-spawn <name> <developer\|reviewer\|analyst> <work package>` | create and start a worker |
 | `/agent-bus-join [name] [role]` | adopt **this** task; name and role default from the task |
 | `/agent-bus-stop <name or task id>` | interrupt a worker, keep its registration |

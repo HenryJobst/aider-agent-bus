@@ -77,6 +77,7 @@ Then reload extensions in AiderDesk.
 /agent-bus-join                                             # adopt THIS task (name and role derived)
 /agent-bus-team                                              # roster, status, unread counts
 /agent-bus-doctor                                            # is each identity really on the bus?
+/agent-bus-config                                            # show/change project settings
 /agent-bus-stop backend                                      # interrupt
 /agent-bus-remove backend                                    # remove from team
 ```
@@ -126,11 +127,18 @@ running task is never woken.
 ## Use cases
 
 **How to read the snippets here.** Each JSON block is a *partial*
-`.aider-desk/agent-bus.json`, not a complete file. Merge the keys into your
-existing file and leave everything else alone — omitted keys keep their defaults.
-Start from `.aider-desk/agent-bus.example.json` if the file does not exist yet.
-The file is gitignored; a restart is not needed, the extension reloads it when it
-changes.
+`.aider-desk/agent-bus.json`, not a complete file. You do not have to edit it by
+hand — set the keys from the master task instead:
+
+```
+/agent-bus-config                                  # show all effective values
+/agent-bus-config orchestration.trackTasks false   # change one value
+```
+
+`/agent-bus-config` validates the key and value, writes the project file and
+applies it immediately. Editing the file manually works too: omitted keys keep
+their defaults, and changes are picked up on the next action. Start from
+`.aider-desk/agent-bus.example.json` if the file does not exist yet.
 
 ### 1. Sessions only need to coordinate
 

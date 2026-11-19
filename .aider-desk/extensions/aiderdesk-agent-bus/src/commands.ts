@@ -5,7 +5,7 @@
 import type { CommandDefinition, ExtensionContext } from '@aiderdesk/extensions';
 
 import { BusUnavailableError } from './bus/client.js';
-import { configPath, writeDefaultConfig } from './core/config.js';
+import { SETTABLE_KEYS, configPath, flattenConfig, setConfigValue, writeDefaultConfig } from './core/config.js';
 import type { ProjectRuntime } from './core/runtime.js';
 import { collectHealth } from './orchestration/doctor.js';
 import {
@@ -248,5 +248,38 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
-  return [init, team, doctor, spawn, join, stop, remove];
+  const config: CommandDefinition = {
+    name: 'agent-bus-config',
+    description: 'Show or change project settings: /agent-bus-config [key] [value]',
+    execute: async (args, context) => {
+      const runtime = getRuntime(context);
+      const [key, raw] = args;
+
+      if (!key) {
+        const rows = flattenConfig(runtime.config).map(([configKey, value]) => `${configKey} = ${value}`);
+        report(context, [...rows, '', 'Change: /agent-bus-config <key> <value>'].join('\n'));
+        return;
+      }
+
+      if (raw === undefined) {
+        const row = flattenConfig(runtime.config).find(([configKey]) => configKey === key);
+        if (!row) {
+          reportError(context, `unknown key "${key}". Known: ${Object.keys(SETTABLE_KEYS).join(', ')}`);
+          return;
+        }
+        report(context, `${row[0]} = ${row[1]}`);
+        return;
+      }
+
+      const result = setConfigValue(runtime.projectDir, key, raw);
+      if (!result.ok) {
+        reportError(context, result.error ?? 'could not set the value');
+        return;
+      }
+      runtime.reload();
+      report(context, `${result.key} = ${JSON.stringify(result.value)} (applied)`);
+    },
+  };
+
+  return [init, team, config, doctor, spawn, join, stop, remove];
 }

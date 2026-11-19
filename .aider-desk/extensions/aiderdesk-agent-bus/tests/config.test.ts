@@ -4,7 +4,14 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 
-import { configMtime, configPath, defaultConfig, loadConfig } from '../src/core/config.js';
+import {
+  configMtime,
+  configPath,
+  defaultConfig,
+  flattenConfig,
+  loadConfig,
+  setConfigValue,
+} from '../src/core/config.js';
 
 function tempProject(): string {
   return mkdtempSync(join(tmpdir(), 'agent-bus-config-'));
@@ -75,6 +82,48 @@ test('out-of-range and unknown values are normalized', () => {
   assert.equal(config.orchestration.maxWakesPerTask, 1000);
   assert.equal(config.agentBus.project, 'project');
   assert.equal(config.agentBus.binary, 'agent-bus');
+});
+
+test('setConfigValue writes one key and keeps everything else', () => {
+  const projectDir = tempProject();
+  writeConfig(projectDir, JSON.stringify({ team: 'a', orchestration: { maxWorkers: 2 } }));
+
+  const result = setConfigValue(projectDir, 'orchestration.trackTasks', 'off');
+
+  assert.equal(result.ok, true);
+  assert.equal(result.value, false);
+
+  const { config } = loadConfig(projectDir);
+  assert.equal(config.team, 'a');
+  assert.equal(config.orchestration.maxWorkers, 2);
+  assert.equal(config.orchestration.trackTasks, false);
+});
+
+test('setConfigValue rejects unknown keys and bad enums, clamps numbers', () => {
+  const projectDir = tempProject();
+
+  assert.match(setConfigValue(projectDir, 'nope', '1').error ?? '', /unknown key/);
+  assert.match(setConfigValue(projectDir, 'isolation.mode', 'quantum').error ?? '', /expects one of/);
+  assert.equal(setConfigValue(projectDir, 'orchestration.maxWorkers', '99').value, 10);
+});
+
+test('setConfigValue refuses to overwrite a broken file', () => {
+  const projectDir = tempProject();
+  writeConfig(projectDir, '{ broken');
+
+  const result = setConfigValue(projectDir, 'team', 'x');
+
+  assert.equal(result.ok, false);
+  assert.match(result.error ?? '', /not valid JSON/);
+});
+
+test('flattenConfig renders dotted keys for display', () => {
+  const rows = flattenConfig(defaultConfig('/tmp/demo'));
+  const keys = rows.map(([key]) => key);
+
+  assert.ok(keys.includes('team'));
+  assert.ok(keys.includes('isolation.mode'));
+  assert.ok(keys.includes('orchestration.trackTasks'));
 });
 
 test('configMtime is undefined without a file and a number with one', () => {
