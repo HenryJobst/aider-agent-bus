@@ -31,7 +31,9 @@ und ein Integrationstest gegen die echte CLI.
 Live verifiziert: Extension-Laden, Command-Ausführung, Config-/State-Schreiben,
 Registrierung der Agenten auf dem Bus, Panel-Refresh, Adoption inklusive
 Worktree-Wechsel sowie ein Master, der Board-Tasks delegiert und Worker, die sie
-claimen.
+claimen. Die Härtung seit 0.2 (Poll-Scope, Wake-Budget, Master-Wake,
+Task-Löschung, scope-lose CLI-Subcommands) ist durch Tests abgedeckt, aber noch
+nicht in einem echten Team verifiziert.
 
 Panel-Aktionen – stop, stop all, stumm, remove, set-config und Klick-zum-Öffnen –
 sind durch Host-Tests gegen den echten Extension-Code abgedeckt, wurden aber noch

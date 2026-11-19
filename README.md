@@ -31,6 +31,9 @@ integration test.
 Verified on the live app: extension load, command execution, config/state
 writes, agents registering on the bus, panel refresh, adoption including the
 worktree switch, and a master that delegates board tasks which workers claim.
+The hardening since 0.2 (poll scope, wake budget, master wake, task deletion,
+scope-less CLI subcommands) is covered by tests but not yet verified in a live
+team.
 
 Panel actions — stop, stop all, mute, remove, set-config and click-to-open — are
 covered by host-level tests against the real extension code, but have not been
