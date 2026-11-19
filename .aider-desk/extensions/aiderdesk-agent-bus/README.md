@@ -295,7 +295,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 161 tests, node:test + tsx
+npm test          # 164 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo
@@ -322,9 +322,10 @@ What is covered without AiderDesk:
 - every slash command against the fake host: defaults, validation errors,
   confirmation flow of `reset`, config clamping and the bus calls they trigger
 - lifecycle events: task closed and deleted (identity removed), orphaned
-  records reconciled on project start, worktree created and merged, profile
-  overrides, learned provider defaults, and the poll timer surviving an
-  extension reload
+  records reconciled on project start/refresh/team (an empty task list is
+  ignored so a loading project cannot close every worker), worktree created and
+  merged, profile overrides, learned provider defaults, and the poll timer
+  surviving an extension reload
 - panel gating: no component without a team, one docked component with one
 
 `tests/host.ts` is the shared fake host for those last three groups: it

@@ -283,8 +283,11 @@ the CLI as a substitute, do not edit files by hand, and do not claim readiness.
 - Closing your task marks your registration `closed`; messages stay on the bus
   and are delivered when the task runs again.
 - Deleting your task removes the identity for good: the bus registration and the
-  join-table record go away. A project start also reconciles records whose task
-  no longer exists, so a missed deletion event cannot leave a ghost worker.
+  join-table record go away. A project start, a panel refresh and
+  `/agent-bus-team` reconcile records whose task no longer exists, so a missed
+  deletion event cannot leave a ghost worker. An empty task list is ignored —
+  during project start it means "not loaded yet", and closing every worker on it
+  would silence the team for good.
 - An already running task can be adopted later (`/agent-bus-join` or
   `agent_bus_join_worker`). You then receive a registration prompt mid-task:
   register, read your inbox, and continue your current work — do not restart it.

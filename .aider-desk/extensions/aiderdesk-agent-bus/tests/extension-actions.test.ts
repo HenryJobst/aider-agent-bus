@@ -166,3 +166,15 @@ test('unknown actions and components are rejected', async () => {
   assert.equal(unknown.ok, false);
   assert.match(unknown.error, /unknown action/);
 });
+
+test('refresh closes workers whose task no longer exists', async () => {
+  const h = makeHost();
+  await spawnBackend(h);
+  h.createTask('keep', 'keep');
+  h.tasks.delete('task-1');
+
+  await h.ext.executeUIExtensionAction(DASHBOARD_ID, 'refresh', [], h.context);
+
+  const view = (await data(h)) as { workers: Array<{ status: string }> };
+  assert.equal(view.workers[0].status, 'closed', 'refresh must not resurrect a closed worker');
+});

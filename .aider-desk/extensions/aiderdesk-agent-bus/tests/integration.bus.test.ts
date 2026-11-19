@@ -121,8 +121,7 @@ test('inject delivers a message body that starts with a dash', { skip: !availabl
 
   assert.equal((await alpha.inboxStatus(agent)).unread, 1);
 
-  // These two subcommands take no scope flags; the agent name has to be enough.
-  await alpha.status(agent, 'working', 'integration test');
+  // `remove-member` takes no scope flags; the agent name has to be enough.
   await alpha.removeMember(agent);
 
   await assert.rejects(() => alpha.inboxStatus(agent), /is not registered/);

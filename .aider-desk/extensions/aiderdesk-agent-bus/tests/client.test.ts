@@ -130,19 +130,15 @@ test('inject goes through send so the scope is explicit, log carries the scope',
   assert.ok(calls[1].includes('--project') && calls[1].includes('p'));
 });
 
-test('status and removeMember rely on the globally unique agent name', async () => {
+test('removeMember relies on the globally unique agent name', async () => {
   const { path, log } = fakeBinary();
   process.env.FAKE_BUS_LOG = log;
 
   const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: path });
-  await client.status('p-backend', 'working', 'halfway');
   await client.removeMember('p-backend');
 
-  const calls = readCalls(log);
-  assert.deepEqual(calls[0].slice(0, 4), ['now', '--agent', 'p-backend', '--status']);
-  assert.ok(calls[0].includes('halfway'));
-  assert.ok(!calls[0].includes('--project'), 'now has no scope options');
-  assert.deepEqual(calls[1], ['remove-member', 'p-backend']);
+  const [call] = readCalls(log);
+  assert.deepEqual(call, ['remove-member', 'p-backend']);
 });
 
 test('inject keeps a message that looks like a flag as the option value', async () => {
@@ -185,11 +181,11 @@ test('nodeBinary runs the script through that interpreter', async () => {
     nodeBinary: process.execPath,
   });
 
-  await client.status('p-backend', 'working');
+  await client.register({ name: 'p-backend', role: 'developer', capabilities: [] });
 
   const [call] = readCalls(log);
-  assert.deepEqual(call.slice(0, 4), ['now', '--agent', 'p-backend', '--status']);
-  assert.ok(call.includes('working'));
+  assert.equal(call[0], 'register');
+  assert.ok(call.includes('--project') && call.includes('p'));
 });
 
 test('a missing binary raises BusUnavailableError with an install hint', async () => {

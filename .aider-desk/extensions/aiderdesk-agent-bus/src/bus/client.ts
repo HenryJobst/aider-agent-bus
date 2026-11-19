@@ -204,19 +204,9 @@ export class BusClient {
     return stdout.trim();
   }
 
-  /** `now` takes no scope flags; agent names are globally unique on the bus. */
-  async status(agentName: string, status: string, note?: string): Promise<string> {
-    const args = ['now', '--agent', agentName, '--status', status];
-    if (note) {
-      args.push('--note', note);
-    }
-    const { stdout } = await this.run(args);
-    return stdout.trim();
-  }
-
   /**
-   * `remove-member` takes no scope flags either: the roster is keyed by the
-   * globally unique agent name.
+   * `remove-member` takes no scope flags: the roster is keyed by the globally
+   * unique agent name.
    */
   async removeMember(agentName: string): Promise<string> {
     const { stdout } = await this.run(['remove-member', agentName]);
@@ -238,16 +228,6 @@ export class BusClient {
   /** Recent bus traffic for quick diagnosis. */
   async log(lines = 20): Promise<string> {
     const { stdout } = await this.run(['log', '-n', String(lines), ...this.scopeArgs()]);
-    return stdout;
-  }
-
-  async directory(): Promise<string> {
-    const { stdout } = await this.run(['whois', ...this.scopeArgs()]);
-    return stdout;
-  }
-
-  async teamBoard(): Promise<string> {
-    const { stdout } = await this.run(['tasks', ...this.scopeArgs()]);
     return stdout;
   }
 }

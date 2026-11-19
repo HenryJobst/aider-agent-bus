@@ -50,7 +50,7 @@ const timerHost = globalThis as typeof globalThis & { __agentBusPollTimer?: Node
 export default class AgentBusExtension implements Extension {
   static metadata: ExtensionMetadata = {
     name: 'aiderdesk-agent-bus',
-    version: '0.2.0',
+    version: '0.2.1',
     description: 'Multi-agent teams on top of agent-bus: spawn workers, give them identities and keep them talking',
     author: 'local',
     capabilities: ['events', 'tools', 'commands', 'agents', 'ui'],
@@ -79,29 +79,11 @@ export default class AgentBusExtension implements Extension {
 
   async onProjectStarted(event: ProjectStartedEvent, context: ExtensionContext): Promise<void> {
     this.activeProjectDir = event.baseDir;
-    await this.reconcileProject(context);
-  }
-
-  /**
-   * Drops records whose task no longer exists. Deletion events are not always
-   * delivered (external folder changes, an app restart), and a stale record
-   * keeps the poller and the panel busy with a task nobody can answer.
-   */
-  private async reconcileProject(context: ExtensionContext): Promise<void> {
-    const runtime = this.tryRuntime(context);
-    if (!runtime) {
-      return;
-    }
-    try {
-      const live = new Set((await runtime.projectContext.getTasks()).map((task) => task.id));
-      runtime.state.reconcile(live);
-      if (runtime.state.master && !live.has(runtime.state.master.taskId)) {
-        runtime.state.clearMaster();
-        runtime.log('the master task no longer exists; cleared the master identity', 'warn');
-      }
-    } catch (error) {
-      runtime.log(`could not reconcile tasks: ${error instanceof Error ? error.message : String(error)}`, 'warn');
-    }
+    // Drops records whose task no longer exists. Deletion events are not always
+    // delivered (external folder changes, an app restart). An empty task list
+    // is ignored: it means the project is still loading, not that every task is
+    // gone.
+    await this.tryRuntime(context)?.reconcileTasks();
   }
 
   async onProjectStopped(event: ProjectStoppedEvent, context: ExtensionContext): Promise<void> {
@@ -456,6 +438,9 @@ export default class AgentBusExtension implements Extension {
 
     switch (action) {
       case 'refresh': {
+        // A refresh is a safe moment to drop records whose task is gone: the
+        // task list is loaded by now.
+        await runtime.reconcileTasks();
         // Unread polling alone shows nothing for workers that never registered.
         // Refresh therefore reports bus-side registration truth as well.
         const health = await collectHealth(runtime);
@@ -464,7 +449,11 @@ export default class AgentBusExtension implements Extension {
           if (entry.registered) {
             registered += 1;
           }
-          if (entry.role === 'master' || runtime.runningTasks.has(entry.taskId)) {
+          if (
+            entry.role === 'master' ||
+            runtime.runningTasks.has(entry.taskId) ||
+            runtime.state.findByTaskId(entry.taskId)?.status === 'closed'
+          ) {
             continue;
           }
           if (entry.registered === true) {

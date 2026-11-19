@@ -115,6 +115,8 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     description: 'Show the agent-bus team with roles, task ids, worktrees and unread counts',
     execute: async (_args, context) => {
       const runtime = getRuntime(context);
+      // Showing the team is a safe point to drop records whose task is gone.
+      await runtime.reconcileTasks();
       const lines = [`project ${runtime.config.agentBus.project} · team ${runtime.config.team}`];
       lines.push(runtime.state.master ? `master  ${runtime.state.master.agentName}` : 'master  not registered');
 

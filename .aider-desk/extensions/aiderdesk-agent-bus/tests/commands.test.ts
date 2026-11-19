@@ -266,3 +266,14 @@ test('stop without an argument needs exactly one running worker', async () => {
   await run(h, 'agent-bus-stop');
   assert.equal(errorOutput(h), 'no worker is running');
 });
+
+test('team reconciles records whose task no longer exists', async () => {
+  const h = makeHost();
+  await spawnBackend(h);
+  h.createTask('keep', 'keep');
+  h.tasks.delete('task-1');
+
+  await run(h, 'agent-bus-team');
+
+  assert.match(output(h), /test-project-backend {2}developer {2}closed/);
+});

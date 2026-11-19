@@ -143,6 +143,27 @@ export class ProjectRuntime {
     };
   }
 
+  /**
+   * Marks records closed whose task no longer exists.
+   *
+   * Returns false without touching the join table when the task list is empty:
+   * `onProjectStarted` can fire before AiderDesk has loaded the tasks, and a
+   * premature reconcile would close every worker for good.
+   */
+  async reconcileTasks(): Promise<boolean> {
+    const tasks = await this.projectContext.getTasks();
+    if (tasks.length === 0) {
+      return false;
+    }
+    const live = new Set(tasks.map((task) => task.id));
+    this.state.reconcile(live);
+    if (this.state.master && !live.has(this.state.master.taskId)) {
+      this.state.clearMaster();
+      this.log('the master task no longer exists; cleared the master identity', 'warn');
+    }
+    return true;
+  }
+
   masterIdentity(): IdentityContext | null {
     const master = this.state.master;
     if (!master) {

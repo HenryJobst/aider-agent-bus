@@ -275,9 +275,24 @@ test('a blocked deletion leaves the worker alone', async () => {
 test('a project start closes workers whose task no longer exists', async () => {
   const h = makeHost();
   await spawnBackend(h);
+  h.createTask('keep', 'keep');
   h.tasks.delete('task-1');
 
   await h.ext.onProjectStarted({ baseDir: h.projectDir } as never, h.context);
 
   assert.equal((await workerView(h)).status, 'closed');
+});
+
+test('a project start with no loaded tasks leaves the workers alone', async () => {
+  const h = makeHost();
+  await spawnBackend(h);
+  h.tasks.clear();
+
+  await h.ext.onProjectStarted({ baseDir: h.projectDir } as never, h.context);
+
+  assert.equal(
+    (await workerView(h)).status,
+    'starting',
+    'an empty task list means the project is still loading, not that every task is gone',
+  );
 });
