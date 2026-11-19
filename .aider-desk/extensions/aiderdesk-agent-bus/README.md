@@ -295,10 +295,11 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 210 tests, Vitest
+npm test          # Vitest
 npm run test:watch
 npm run mutate:wakeup  # Stryker + Vitest runner, one module (slow, separate)
 npm run coverage  # Vitest V8 coverage (text + html in coverage/)
+npm run badges    # refresh the badges in the repository READMEs (checkout only)
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo
@@ -351,11 +352,10 @@ runs tests that reach the module indirectly, so treat the score as a signal,
 not a precise per-file number.
 
 Coverage is the complement: `npm run coverage` uses the Vitest V8 provider and
-writes `coverage/` (gitignored). Current state: 89 % statements, 80 % branches,
-92 % functions, 89 % lines. The weakest file is `tools.ts` at 34 % — the tool
-`execute` bodies are barely exercised; the suite mostly checks their names.
-Coverage shows which lines never run, mutation testing shows which lines run
-without an assertion noticing a change.
+writes `coverage/` (gitignored). The current totals are shown in the badges of
+the repository README and refreshed with `npm run badges`. Coverage shows which
+lines never run, mutation testing shows which lines run without an assertion
+noticing a change.
 
 `tests/integration.bus.test.ts` runs against the real CLI in a throwaway
 `AGENT_BUS_DIR`: two identities register, one sends, the other sees

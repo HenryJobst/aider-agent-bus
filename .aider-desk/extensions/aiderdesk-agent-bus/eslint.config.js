@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -39,6 +40,14 @@ export default tseslint.config(
     rules: {
       // Tests cast fakes to host types on purpose.
       '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+    rules: {
+      // A maintenance script reports its result on stdout.
+      'no-console': 'off',
     },
   },
 );

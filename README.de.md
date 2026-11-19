@@ -2,6 +2,14 @@
 
 [English](README.md) · [Deutsch](README.de.md)
 
+<!-- badges:start -->
+[![tests](https://img.shields.io/badge/tests-271-brightgreen)](#entwicklung)
+[![coverage](https://img.shields.io/badge/coverage-97.3%25%20stmts%20%2F%2091.0%25%20branches-brightgreen)](#entwicklung)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6)](https://www.typescriptlang.org)
+[![AiderDesk](https://img.shields.io/badge/AiderDesk-extension-6366f1)](.aider-desk/extensions/aiderdesk-agent-bus/README.md)
+<!-- badges:end -->
+
 Macht aus unabhängigen AiderDesk-Tasks ein abgestimmtes Multi-Agent-Team.
 
 AiderDesk führt die Agenten aus und verwaltet Git-Worktrees. [agent-bus](https://github.com/MustaphaSteph/agent-bus)
@@ -22,8 +30,8 @@ zwischen zwei Systemen, die es schon gibt.
 
 **v0.2.1 — nutzbar, Härtung läuft.** Für die Abstimmung zwischen Sessions
 funktional vollständig; mit rauen Kanten bei Merges und allem, was unten nicht
-als verifiziert aufgeführt ist. Abgedeckt durch 210 Tests: Tasks mit Profil,
-Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
+als verifiziert aufgeführt ist. Abgedeckt durch die Vitest-Suite: Tasks mit
+Profil, Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
 Inbox-Polling und Aufwecken, jeder Slash-Command samt Validierung, Task- und
 Worktree-Events, Profil-Overrides, Dashboard-Gating, Config-/State-Persistenz
 und ein Integrationstest gegen die echte CLI.
@@ -334,9 +342,10 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 npm run mutate:wakeup  # Stryker-Mutationsscore für wakeup.ts (langsam, separat)
 npm run coverage  # Vitest-V8-Coverage-Report
+npm run badges  # Tests-/Coverage-Badges in beiden READMEs aktualisieren
 ```
 
-210 Tests, ESLint + Prettier eingerichtet:
+Vitest-Suite, ESLint + Prettier eingerichtet:
 
 | Suite | Deckt ab |
 |---|---|
@@ -350,7 +359,7 @@ npm run coverage  # Vitest-V8-Coverage-Report
 | Wake integriert | echte CLI und Bus-DB: eine zugestellte Nachricht weckt genau einmal, ein stummer Worker nie |
 | Integration | echte CLI in einem temporären `AGENT_BUS_DIR`: zwei Identitäten registrieren, Nachricht, Unread-Zähler, Scope-Isolation, `inject` mit führendem `--`, `remove-member` ohne Scope; wird ohne CLI übersprungen |
 | Mutation | Stryker + Vitest-Runner: `wakeup.ts` 77 % total / 81 % covered, `state.ts` 93 %, `config.ts` 87 %; übrig bleiben vor allem Log-Strings, Rückgabewert-Mutanten und äquivalente Guards |
-| Coverage | Vitest V8: 89 % Statements, 80 % Branches, 92 % Functions, 89 % Lines; schwächste Datei `tools.ts` (34 %) |
+| Coverage | Vitest-V8-Report (`npm run coverage`); die aktuellen Werte stehen in den Badges oben und werden mit `npm run badges` aktualisiert |
 
 Design-Entscheidungen und Stolperfallen (expliziter Bus-Scope, keine
 blockierenden Inbox-Waits, Worktree-Regeln) stehen in [`AGENTS.md`](AGENTS.md)
