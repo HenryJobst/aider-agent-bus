@@ -94,6 +94,9 @@ Commands (run in the master task):
 |---|---|
 | `/agent-bus-init` | write the config, switch this task to the master profile (model preserved), register it as master, queue its bus registration and report `bus:`/`mcp:` health |
 | `/agent-bus-team` | master, workers, roles, task ids, worktrees, unread counts |
+| `/agent-bus-say <to> <message>` | send a message as the human (agent-bus `inject`) |
+| `/agent-bus-log [n]` | recent bus traffic for quick diagnosis |
+| `/agent-bus-pause <name>` / `/agent-bus-resume <name>` | mute or restore wake-ups for one participant |
 | `/agent-bus-doctor` | whether each identity is actually registered on the bus, plus `mcp:` state |
 | `/agent-bus-config [key] [value]` | show effective settings or change one validated key |
 | `/agent-bus-spawn <name> [role] <work package>` | create and start a worker; role defaults to developer |
@@ -118,8 +121,9 @@ Dashboard (`tasks-sidebar-bottom`): a compact strip at the bottom of the tasks
 sidebar with status dots, unread badges, per-worker `stop` and `×` (remove), collapse
 and a refresh action that reports how many identities are registered on the bus.
 The expanded panel also toggles board vs. message-only coordination, peer-to-peer
-messages and the isolation mode (the last one only while no worker runs). The
-header holds `stop all`, which interrupts every running agent including the
+messages and the isolation mode (the last one only while no worker runs). Each
+worker row has a bell that mutes or restores its wake-ups. The header holds
+`stop all`, which interrupts every running agent including the
 master, after a confirmation. It is only registered for projects that already have a team
 (master or workers); an uninitialised project does not get a floating panel.
 It is docked, not a floating window, so it does not cover the chat.

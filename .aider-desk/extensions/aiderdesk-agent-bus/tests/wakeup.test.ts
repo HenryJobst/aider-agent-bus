@@ -49,6 +49,17 @@ test('a running task is never woken', async () => {
   assert.equal(runtime.state.findByTaskId('task-1')?.wakes, 0);
 });
 
+test('a muted worker is not woken although messages are waiting', async () => {
+  const { runtime, fake, watcher } = await setup(3);
+  runtime.state.updateWorker('task-1', { muted: true });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+  assert.equal(runtime.state.findByTaskId('task-1')?.wakes, 0);
+});
+
 test('the wake cooldown prevents prompt storms', async () => {
   const { runtime, fake, watcher } = await setup(1);
   runtime.state.updateWorker('task-1', { lastWakeAt: new Date().toISOString() });

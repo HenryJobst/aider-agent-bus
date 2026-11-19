@@ -581,6 +581,35 @@ export async function resetTeam(runtime: ProjectRuntime): Promise<{
   return { removed, failed };
 }
 
+/** Resolves a worker name, short name or task id to the bus identity. */
+export function resolveAgentName(runtime: ProjectRuntime, target: string): string {
+  const worker =
+    runtime.state.findByName(target) ??
+    runtime.state.findByTaskId(target) ??
+    runtime.state.workers.find((entry) => entry.name === target);
+  return worker?.agentName ?? target;
+}
+
+/** Mutes or unmutes wake-ups for one participant; messages keep queuing. */
+export function setMuted(
+  runtime: ProjectRuntime,
+  nameOrTaskId: string,
+  muted: boolean,
+): { ok: boolean; agentName?: string; muted?: boolean; error?: string } {
+  const worker =
+    runtime.state.findByName(nameOrTaskId) ??
+    runtime.state.findByTaskId(nameOrTaskId) ??
+    runtime.state.workers.find((entry) => entry.name === nameOrTaskId);
+
+  if (!worker) {
+    return { ok: false, error: `unknown worker "${nameOrTaskId}"` };
+  }
+
+  runtime.state.updateWorker(worker.taskId, { muted });
+  runtime.log(`${worker.agentName} ${muted ? 'muted' : 'unmuted'}`, 'info');
+  return { ok: true, agentName: worker.agentName, muted };
+}
+
 export function describeWorkers(
   runtime: ProjectRuntime,
 ): Array<Pick<WorkerRecord, 'agentName' | 'role' | 'status' | 'worktree' | 'taskId'>> {

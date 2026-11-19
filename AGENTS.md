@@ -72,6 +72,9 @@ project only the global one is loaded.
 | `/agent-bus-spawn <name> [role] <task>` | new task + role profile + worktree + registration prompt |
 | `/agent-bus-join [name] [role]` | adopt the current task; defaults: task name as identity, role from profile or task name |
 | `/agent-bus-team` | roster, roles, task ids, worktrees, unread counts |
+| `/agent-bus-say <to> <msg>` | message as the human, without faking an agent identity |
+| `/agent-bus-log [n]` | recent bus traffic |
+| `/agent-bus-pause <name>` / `/agent-bus-resume <name>` | mute or restore wake-ups |
 | `/agent-bus-doctor` | bus-side truth: registered / NOT registered per identity |
 | `/agent-bus-config [key] [value]` | show or change one validated setting without editing JSON |
 | `/agent-bus-stop [name]` | interrupt a worker (default: the only running one), keep the registration |

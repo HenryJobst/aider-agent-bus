@@ -16,6 +16,7 @@ import {
   registerMaster,
   removeWorker,
   resetTeam,
+  setMuted,
   spawnWorkers,
   stopAll,
   stopWorker,
@@ -349,6 +350,27 @@ test('joining respects maxWorkers', async () => {
   assert.equal(outcome.ok, false);
   assert.match(outcome.error ?? '', /maxWorkers \(1\) reached/);
   assert.equal(runtime.state.workers.length, 1);
+});
+
+test('setMuted toggles wake-ups and keeps the registration', () => {
+  const { runtime } = makeRuntime();
+  runtime.state.upsertWorker({
+    agentName: 'p-backend',
+    taskId: 't-backend',
+    role: 'developer',
+    name: 'backend',
+    capabilities: [],
+    worktree: null,
+    status: 'idle',
+  });
+
+  assert.equal(setMuted(runtime, 'p-backend', true).muted, true);
+  assert.equal(runtime.state.findByTaskId('t-backend')?.muted, true);
+
+  assert.equal(setMuted(runtime, 'backend', false).muted, false);
+  assert.equal(runtime.state.findByTaskId('t-backend')?.muted, false);
+
+  assert.equal(setMuted(runtime, 'nobody', true).ok, false);
 });
 
 test('removing a worker drops the mapping and tolerates a missing registration', async () => {

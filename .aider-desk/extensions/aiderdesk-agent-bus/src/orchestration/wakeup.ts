@@ -18,7 +18,7 @@ export class InboxWatcher {
       return false;
     }
     const worker = this.runtime.state.findByTaskId(taskId);
-    if (!worker || worker.status === 'closed') {
+    if (!worker || worker.status === 'closed' || worker.muted) {
       return false;
     }
     if (worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask) {

@@ -7,6 +7,7 @@ import type { CommandDefinition, ExtensionContext } from '@aiderdesk/extensions'
 import { BusUnavailableError } from './bus/client.js';
 import { SETTABLE_KEYS, configPath, flattenConfig, setConfigValue, writeDefaultConfig } from './core/config.js';
 import type { ProjectRuntime } from './core/runtime.js';
+import { DASHBOARD_ID } from './constants.js';
 import { collectHealth } from './orchestration/doctor.js';
 import {
   deriveJoinName,
@@ -19,6 +20,8 @@ import {
   registerMaster,
   removeWorker,
   resetTeam,
+  resolveAgentName,
+  setMuted,
   spawnWorkers,
   stopWorker,
 } from './orchestration/team.js';
@@ -292,6 +295,83 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
+  const say: CommandDefinition = {
+    name: 'agent-bus-say',
+    description: 'Send a message as the human: /agent-bus-say <to> <message>',
+    execute: async (args, context) => {
+      const [to, ...words] = args;
+      const text = words.join(' ').trim();
+      if (!to || !text) {
+        reportError(context, 'Usage: /agent-bus-say <agent name> <message>');
+        return;
+      }
+      const runtime = getRuntime(context);
+      const target = resolveAgentName(runtime, to);
+      try {
+        await runtime.bus.inject(target, text);
+        report(context, `sent to ${target}: ${text}`);
+      } catch (error) {
+        reportError(context, `send failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    },
+  };
+
+  const pause: CommandDefinition = {
+    name: 'agent-bus-pause',
+    description: 'Stop wake-ups for a participant: /agent-bus-pause <name>',
+    execute: async (args, context) => {
+      const target = args[0];
+      if (!target) {
+        reportError(context, 'Usage: /agent-bus-pause <worker name or task id>');
+        return;
+      }
+      const runtime = getRuntime(context);
+      const result = setMuted(runtime, target, true);
+      if (!result.ok) {
+        reportError(context, result.error ?? 'pause failed');
+        return;
+      }
+      context.triggerUIDataRefresh(DASHBOARD_ID);
+      report(context, `${result.agentName} muted — messages keep queuing`);
+    },
+  };
+
+  const resume: CommandDefinition = {
+    name: 'agent-bus-resume',
+    description: 'Allow wake-ups again: /agent-bus-resume <name>',
+    execute: async (args, context) => {
+      const target = args[0];
+      if (!target) {
+        reportError(context, 'Usage: /agent-bus-resume <worker name or task id>');
+        return;
+      }
+      const runtime = getRuntime(context);
+      const result = setMuted(runtime, target, false);
+      if (!result.ok) {
+        reportError(context, result.error ?? 'resume failed');
+        return;
+      }
+      context.triggerUIDataRefresh(DASHBOARD_ID);
+      report(context, `${result.agentName} will be woken again`);
+    },
+  };
+
+  const log: CommandDefinition = {
+    name: 'agent-bus-log',
+    description: 'Show recent bus traffic: /agent-bus-log [n]',
+    execute: async (args, context) => {
+      const runtime = getRuntime(context);
+      const requested = Number.parseInt(args[0] ?? '20', 10);
+      const count = Math.min(200, Math.max(1, Number.isFinite(requested) ? requested : 20));
+      try {
+        const output = await runtime.bus.log(count);
+        report(context, output.trim() || 'no traffic yet');
+      } catch (error) {
+        reportError(context, `log failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    },
+  };
+
   const leave: CommandDefinition = {
     name: 'agent-bus-leave',
     description: 'This task leaves the team: identity and wake-ups removed, the task keeps running',
@@ -354,5 +434,5 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
-  return [init, team, config, doctor, spawn, join, stop, remove, leave, reset];
+  return [init, team, config, doctor, log, say, spawn, join, stop, remove, leave, pause, resume, reset];
 }

@@ -26,9 +26,10 @@ import type {
 } from '@aiderdesk/extensions';
 
 import { createTeamCommands } from './src/commands.js';
+import { DASHBOARD_ID } from './src/constants.js';
 import { configMtime, configPath, setConfigValue } from './src/core/config.js';
 import { ProjectRuntime } from './src/core/runtime.js';
-import { removeWorker, stopAll, stopWorker } from './src/orchestration/team.js';
+import { removeWorker, setMuted, stopAll, stopWorker } from './src/orchestration/team.js';
 import { checkRegistration, collectHealth } from './src/orchestration/doctor.js';
 import { InboxWatcher } from './src/orchestration/wakeup.js';
 import { ROLE_PROFILE_IDS, buildProfiles } from './src/profiles.js';
@@ -38,7 +39,6 @@ import { createTeamTools } from './src/tools.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const DASHBOARD_ID = 'agent-bus-dashboard';
 const TICK_MS = 10_000;
 
 export default class AgentBusExtension implements Extension {
@@ -287,6 +287,7 @@ export default class AgentBusExtension implements Extension {
         taskId: worker.taskId,
         worktree: worker.worktree,
         wakes: worker.wakes,
+        muted: worker.muted ?? false,
         unread: runtime.unreadByTask.get(worker.taskId) ?? 0,
         error: runtime.lastInboxError.get(worker.taskId) ?? null,
       })),
@@ -363,6 +364,17 @@ export default class AgentBusExtension implements Extension {
           return result;
         }
         runtime.reload();
+        context.triggerUIDataRefresh(DASHBOARD_ID);
+        return result;
+      }
+      case 'toggle-mute': {
+        const target = String(args[0] ?? '');
+        const worker =
+          runtime.state.findByName(target) ?? runtime.state.workers.find((entry) => entry.taskId === target);
+        if (!worker) {
+          return { ok: false, error: `unknown worker "${target}"` };
+        }
+        const result = setMuted(runtime, target, !worker.muted);
         context.triggerUIDataRefresh(DASHBOARD_ID);
         return result;
       }

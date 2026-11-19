@@ -112,6 +112,22 @@ test('send builds a scoped message call', async () => {
   assert.ok(call.includes('hello'));
 });
 
+test('inject and log carry the scope', async () => {
+  const { path, log } = fakeBinary();
+  process.env.FAKE_BUS_LOG = log;
+
+  const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: path });
+  await client.inject('p-backend', 'hello');
+  await client.log(5);
+
+  const calls = readCalls(log);
+  assert.deepEqual(calls[0].slice(0, 5), ['inject', '--from', 'human', '--to', 'p-backend']);
+  assert.ok(calls[0].includes('hello'));
+  assert.ok(calls[0].includes('--project') && calls[0].includes('p'));
+  assert.ok(calls[1].includes('log'));
+  assert.ok(calls[1].includes('5'));
+});
+
 test('a non-zero exit surfaces the CLI message, not the shell command', async () => {
   const { path, log } = fakeBinary();
   process.env.FAKE_BUS_LOG = log;

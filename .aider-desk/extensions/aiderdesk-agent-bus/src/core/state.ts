@@ -18,6 +18,8 @@ export interface WorkerRecord {
   capabilities: string[];
   worktree: string | null;
   status: WorkerStatus;
+  /** true = no wake-ups; messages keep queuing on the bus. */
+  muted?: boolean;
   createdAt: string;
   lastWakeAt?: string;
   wakes: number;

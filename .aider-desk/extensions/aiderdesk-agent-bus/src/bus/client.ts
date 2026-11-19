@@ -219,6 +219,18 @@ export class BusClient {
     return stdout.trim();
   }
 
+  /** Human relay: delivers a message without pretending to be a team agent. */
+  async inject(to: string, message: string, from = 'human'): Promise<string> {
+    const { stdout } = await this.run(['inject', '--from', from, '--to', to, ...this.scopeArgs(), message]);
+    return stdout.trim();
+  }
+
+  /** Recent bus traffic for quick diagnosis. */
+  async log(lines = 20): Promise<string> {
+    const { stdout } = await this.run(['log', '-n', String(lines), ...this.scopeArgs()]);
+    return stdout;
+  }
+
   async directory(): Promise<string> {
     const { stdout } = await this.run(['whois', ...this.scopeArgs()]);
     return stdout;

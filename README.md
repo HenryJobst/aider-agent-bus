@@ -77,8 +77,11 @@ Then reload extensions in AiderDesk.
 /agent-bus-spawn <name> [role]      # new worker; role defaults to developer
 /agent-bus-join                     # adopt THIS task (name and role derived)
 /agent-bus-team                     # roster, status, unread counts
+/agent-bus-say backend <message>    # message as the human
+/agent-bus-log 20                   # recent bus traffic
 /agent-bus-doctor                   # is each identity really on the bus?
 /agent-bus-config                   # show/change project settings
+/agent-bus-pause backend            # mute wake-ups, resume with /agent-bus-resume
 /agent-bus-stop                     # interrupt the only running worker
 /agent-bus-remove <name>            # remove a participant from the team
 /agent-bus-leave                    # this task leaves the team, keeps running

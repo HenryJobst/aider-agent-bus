@@ -8,7 +8,7 @@
 (props) => {
   const { data, ui, icons, executeExtensionAction } = props;
   const { Button } = ui;
-  const { FiRefreshCw, FiChevronDown, FiChevronRight } = icons.Fi;
+  const { FiRefreshCw, FiChevronDown, FiChevronRight, FiBell, FiBellOff } = icons.Fi;
   const [note, setNote] = React.useState(null);
   const [expanded, setExpanded] = React.useState(true);
 
@@ -51,6 +51,16 @@
     setNote('stopping all…');
     const result = await executeExtensionAction('stop-all');
     setNote(result && result.ok ? `stopped ${result.stopped.length} agent(s)` : 'stop all failed');
+  };
+
+  const toggleMute = async (agentName, muted) => {
+    setNote(`${agentName}: ${muted ? 'unmuting' : 'muting'}…`);
+    const result = await executeExtensionAction('toggle-mute', agentName);
+    setNote(
+      result && result.ok
+        ? `${agentName}: ${result.muted ? 'wake-ups muted' : 'wake-ups on'}`
+        : `${agentName}: ${(result && result.error) || 'failed'}`,
+    );
   };
 
   const removeWorker = async (agentName) => {
@@ -117,9 +127,19 @@
           {workers.map((worker) => (
             <div key={worker.taskId} className="flex items-center gap-1">
               <span className={'h-1.5 w-1.5 shrink-0 rounded-full ' + statusColor(worker.status)} />
-              <span className="truncate text-text-primary">{worker.agentName}</span>
+              <span className={'truncate ' + (worker.muted ? 'text-text-secondary' : 'text-text-primary')}>
+                {worker.agentName}
+              </span>
               {worker.unread > 0 ? <span className="text-primary">{worker.unread}</span> : null}
               <span className="flex-1" />
+              <Button
+                size="xs"
+                variant="outline"
+                title={worker.muted ? 'Wake-ups muted — click to resume' : 'Mute wake-ups'}
+                onClick={() => toggleMute(worker.agentName, worker.muted)}
+              >
+                {worker.muted ? <FiBellOff className="w-3 h-3" /> : <FiBell className="w-3 h-3" />}
+              </Button>
               <Button
                 size="xs"
                 variant="outline"
