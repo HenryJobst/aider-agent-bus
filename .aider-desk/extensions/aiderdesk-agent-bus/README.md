@@ -30,8 +30,9 @@ prompt), adopting existing tasks, identity mapping, inbox polling and wake-up,
 team commands/tools, UI dashboard, config/state persistence, CLI integration
 against a real bus.
 
-Not yet proven: loading inside AiderDesk, real `createTask` worktrees and a
-live two-task conversation — see [Phase 1 acceptance run](#phase-1-acceptance-run).
+Seen live: extension load, commands, joins, MCP registration, panel actions.
+Not yet proven: `createTask` worktrees and a task that finishes a delegated work
+package — see [Phase 1 acceptance run](#phase-1-acceptance-run).
 
 ## For agents
 
@@ -261,7 +262,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 53 tests, node:test + tsx
+npm test          # 79 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo

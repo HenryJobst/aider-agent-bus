@@ -18,12 +18,13 @@ systems that already exist.
 
 ## Status
 
-Phase 1 (proof of concept). Covered by 53 tests: spawning tasks with profile,
+Phase 1 (proof of concept). Covered by 79 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, team commands/tools, dashboard, config/state persistence, and a
 real-CLI integration test. Verified on the live app: extension load, command
-execution, config/state writes. Not yet proven end-to-end: real worktree
-creation and a live two-task conversation.
+execution, config/state writes, agents registering on the bus and the panel
+actions. Not yet proven end-to-end: worktree creation through `createTask` and a
+task that finishes a delegated work package.
 
 ## Install
 
@@ -72,14 +73,14 @@ Then reload extensions in AiderDesk.
 ## Use
 
 ```
-/agent-bus-init                                             # config + register this task as master
-/agent-bus-spawn backend Implement the users API               # new worker; role defaults to developer
-/agent-bus-join                                             # adopt THIS task (name and role derived)
-/agent-bus-team                                              # roster, status, unread counts
-/agent-bus-doctor                                            # is each identity really on the bus?
-/agent-bus-config                                            # show/change project settings
-/agent-bus-stop                                              # interrupt the only running worker
-/agent-bus-remove backend                                    # remove from team
+/agent-bus-init                     # config + register this task as master
+/agent-bus-spawn <name> [role]      # new worker; role defaults to developer
+/agent-bus-join                     # adopt THIS task (name and role derived)
+/agent-bus-team                     # roster, status, unread counts
+/agent-bus-doctor                   # is each identity really on the bus?
+/agent-bus-config                   # show/change project settings
+/agent-bus-stop                     # interrupt the only running worker
+/agent-bus-remove <name>            # remove a participant from the team
 ```
 
 Two ways to get a team member:
@@ -101,10 +102,15 @@ is configured for the project and agents will not see `register`/`send`/`inbox`
 
 The master agent gets `agent_bus_spawn_worker`, `agent_bus_spawn_team`,
 `agent_bus_join_worker`, `agent_bus_get_team`, `agent_bus_stop_worker` and
-`agent_bus_remove_worker`;
-every other profile only sees the team overview. Conversations stay on the
+`agent_bus_remove_worker`; every other profile only sees the team overview. Conversations stay on the
 agent-bus MCP tools (`register`, `send`, `ask`, `reply`, `delegate`, `now`,
 `team_board`).
+
+The panel at the bottom of the tasks sidebar mirrors the three settings you flip
+per project — board tasks vs. message-only, peer-to-peer on/off, and worktree vs.
+shared isolation (the last one only while no worker is running). Everything else
+goes through `/agent-bus-config <key> <value>`, which validates the key, writes
+the project file and applies it immediately.
 
 Config lives in the project: `.aider-desk/agent-bus.json`. Identity mapping and
 wake counters live next to it in `.aider-desk/agent-bus-state.json` — a join
@@ -280,7 +286,7 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-53 tests, ESLint + Prettier configured:
+79 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|

@@ -89,7 +89,7 @@ is the short mapping.
 | Scenario | Setup | Action |
 |---|---|---|
 | Only coordinate sessions | `orchestration.trackTasks: false` | `init` in the lead task, `/agent-bus-join` in the others, then `send`/`ask`/`reply` |
-| Isolated work package | git repo, `isolation.mode: worktree` | `/agent-bus-spawn <name> <role> <task>` |
+| Isolated work package | git repo, `isolation.mode: worktree` | `/agent-bus-spawn <name> [role] <task>` |
 | Adopt running sessions | — | stop the task, `/agent-bus-join`; `switchToWorktree` only before edits |
 | Tracked work with review | `trackTasks: true`, `requireReview: true` | master `delegate`s, worker claims, reviewer reports, master `done` |
 | Shrink the team | — | `/agent-bus-stop` (run) vs `/agent-bus-remove` (membership) |
@@ -156,7 +156,11 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
     handed to the Python Aider connector ("Running Aider for project"), which has
     no MCP tools and never registers. Use `task.data.currentMode ?? 'agent'` and
     create tasks with `mode: 'agent'`.
-12. **Joining is not spawning.** An adopted task keeps its conversation, its
+12. **Settings changes go through the whitelist.** Use `setConfigValue`
+    (`SETTABLE_KEYS`) from `src/core/config.ts` — never write arbitrary JSON from
+    a command, the panel or a tool, and never skip the normalization that clamps
+    numbers and rejects unknown enum values.
+13. **Joining is not spawning.** An adopted task keeps its conversation, its
     working directory and its provider/model; it only gets the role profile so
     the MCP server is enabled. Never recreate or reset an adopted task.
 
