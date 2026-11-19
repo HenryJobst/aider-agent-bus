@@ -12,6 +12,7 @@ import { masterRegistrationPrompt, registrationPrompt } from '../bus/prompts.js'
 import type { ProjectRuntime } from '../core/runtime.js';
 import type { WorkerRecord } from '../core/state.js';
 import { ROLE_PROFILE_IDS, resolveRole } from '../profiles.js';
+import type { TeamRole } from '../profiles.js';
 
 export interface SpawnRequest {
   name: string;
@@ -35,6 +36,34 @@ export function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 40);
+}
+
+/** Default join identity: the task name without a role suffix, slugified. */
+export function deriveJoinName(taskName: string | undefined, taskId: string): string {
+  const base = (taskName ?? '').replace(/\((developer|reviewer|analyst|master)\)\s*$/i, '').trim();
+  return slugify(base) || `task-${taskId.slice(0, 4)}`;
+}
+
+/**
+ * Default join role: take it from an already assigned role profile, otherwise
+ * infer from the task name. Explicit input always wins in the caller.
+ */
+export function inferRole(taskName: string | undefined, agentProfileId?: string): TeamRole {
+  const fromProfile = (Object.entries(ROLE_PROFILE_IDS) as Array<[TeamRole, string]>).find(
+    ([, id]) => id === agentProfileId,
+  );
+  if (fromProfile) {
+    return fromProfile[0];
+  }
+
+  const name = (taskName ?? '').toLowerCase();
+  if (/(review|qa|quality|test)/.test(name)) {
+    return 'reviewer';
+  }
+  if (/(plan|analys|konzept|research|recherche)/.test(name)) {
+    return 'analyst';
+  }
+  return 'developer';
 }
 
 export function agentNameFor(runtime: ProjectRuntime, name: string): string {

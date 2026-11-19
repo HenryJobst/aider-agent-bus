@@ -95,7 +95,7 @@ Commands (run in the master task):
 | `/agent-bus-team` | master, workers, roles, task ids, worktrees, unread counts |
 | `/agent-bus-doctor` | whether each identity is actually registered on the bus, plus `mcp:` state |
 | `/agent-bus-spawn <name> <developer\|reviewer\|analyst> <work package>` | create and start a worker |
-| `/agent-bus-join <name> <developer\|reviewer\|analyst>` | adopt **this** already running task into the team |
+| `/agent-bus-join [name] [role]` | adopt **this** task; name and role default from the task |
 | `/agent-bus-stop <name or task id>` | interrupt a worker, keep its registration |
 
 Extension tools (master profile only; other profiles get `agent_bus_get_team`):
@@ -120,9 +120,13 @@ call, the scope (`project`, `area`, `team`), the worktree path and the team
 rules. Registration is performed by the agent through its MCP tools — the
 extension never fakes a bus identity.
 
-**Adopting a running session.** `/agent-bus-join frontend developer` (or
+**Adopting a running session.** `/agent-bus-join` without arguments (or
 `agent_bus_join_worker` with a `taskId`) turns an existing task into a team
-member. It keeps its conversation and working directory, gets the bus identity
+member. Defaults: the identity is the slugified task name (falling back to
+`task-<id>`), the role comes from an already assigned role profile or, failing
+that, from keywords in the task name (`review`/`qa` → reviewer,
+`plan`/`research` → analyst, otherwise developer). Both can be overridden as
+`/agent-bus-join <name> <role>`. It keeps its conversation and working directory, gets the bus identity
 and a prompt that says "register, then continue your current work — do not
 restart". The task is switched to the role profile so the agent-bus MCP server
 is actually enabled for it (`agentProfileId`), while its provider/model stay

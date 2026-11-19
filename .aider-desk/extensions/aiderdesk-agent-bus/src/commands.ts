@@ -8,7 +8,16 @@ import { BusUnavailableError } from './bus/client.js';
 import { configPath, writeDefaultConfig } from './core/config.js';
 import type { ProjectRuntime } from './core/runtime.js';
 import { collectHealth } from './orchestration/doctor.js';
-import { ensureMaster, joinWorker, registerMaster, spawnWorkers, stopWorker } from './orchestration/team.js';
+import {
+  deriveJoinName,
+  ensureMaster,
+  inferRole,
+  joinWorker,
+  registerMaster,
+  spawnWorkers,
+  stopWorker,
+} from './orchestration/team.js';
+import { resolveRole } from './profiles.js';
 
 async function mcpHealth(context: ExtensionContext, runtime: ProjectRuntime): Promise<string> {
   try {
@@ -173,18 +182,17 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
 
   const join: CommandDefinition = {
     name: 'agent-bus-join',
-    description: 'Adopt this task into the team: /agent-bus-join <name> <developer|reviewer|analyst>',
+    description: 'Adopt this task into the team: /agent-bus-join [name] [role] — defaults from the task',
     execute: async (args, context) => {
-      const [name, role = 'developer'] = args;
-      if (!name) {
-        reportError(context, 'Usage: /agent-bus-join <name> <developer|reviewer|analyst>');
-        return;
-      }
       const task = context.getTaskContext();
       if (!task) {
         reportError(context, 'Open the task you want to adopt and run the command inside it.');
         return;
       }
+
+      const name = args[0] ?? deriveJoinName(task.data.name, task.data.id);
+      const role = resolveRole(args[1] ?? inferRole(task.data.name, task.data.agentProfileId));
+
       const runtime = getRuntime(context);
       const outcome = await joinWorker(runtime, task, { name, role });
       if (!outcome.ok) {
@@ -193,7 +201,10 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
       }
       context.triggerUIComponentsReload();
       const mcp = await mcpHealth(context, runtime);
-      report(context, `task ${outcome.taskId} joined the team as ${outcome.agentName} (${role})\nmcp: ${mcp}`);
+      report(
+        context,
+        `task ${outcome.taskId} joined the team as ${outcome.agentName} (${role}, name "${name}")\nmcp: ${mcp}`,
+      );
     },
   };
 

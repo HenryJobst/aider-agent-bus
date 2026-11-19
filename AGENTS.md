@@ -70,7 +70,7 @@ project only the global one is loaded.
 |---|---|
 | `/agent-bus-init` | write config, register this task as master, queue its bus registration, print `bus:` and `mcp:` health |
 | `/agent-bus-spawn <name> <role> <task>` | new task + role profile + worktree + registration prompt |
-| `/agent-bus-join <name> <role>` | adopt the current task, switch it to the role profile, keep its model |
+| `/agent-bus-join [name] [role]` | adopt the current task; defaults: task name as identity, role from profile or task name |
 | `/agent-bus-team` | roster, roles, task ids, worktrees, unread counts |
 | `/agent-bus-doctor` | bus-side truth: registered / NOT registered per identity |
 | `/agent-bus-stop <name>` | interrupt a worker, keep the registration |

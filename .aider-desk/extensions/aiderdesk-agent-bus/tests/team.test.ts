@@ -3,7 +3,15 @@ import test from 'node:test';
 
 import type { TaskContext } from '@aiderdesk/extensions';
 
-import { ensureMaster, joinWorker, registerMaster, spawnWorkers, stopWorker } from '../src/orchestration/team.js';
+import {
+  deriveJoinName,
+  ensureMaster,
+  inferRole,
+  joinWorker,
+  registerMaster,
+  spawnWorkers,
+  stopWorker,
+} from '../src/orchestration/team.js';
 import { makeRuntime, makeTask } from './fakes.js';
 
 test('spawn creates a task with profile, worktree mode and a registration prompt', async () => {
@@ -229,6 +237,20 @@ test('join keeps the task model and only swaps the profile', async () => {
     provider: 'acme',
     model: 'acme-model',
   });
+});
+
+test('join derives a sensible default identity from the task name', () => {
+  assert.equal(deriveJoinName('M9 Pipeline', 'abcd1234'), 'm9-pipeline');
+  assert.equal(deriveJoinName('Recherche (developer)', 'abcd1234'), 'recherche');
+  assert.equal(deriveJoinName(undefined, 'abcd1234'), 'task-abcd');
+  assert.equal(deriveJoinName('???', 'abcd1234'), 'task-abcd');
+});
+
+test('join infers the role from the profile first, then the task name', () => {
+  assert.equal(inferRole('anything', 'agent-bus-reviewer'), 'reviewer');
+  assert.equal(inferRole('QA Integration', undefined), 'reviewer');
+  assert.equal(inferRole('Recherche Pipeline', undefined), 'analyst');
+  assert.equal(inferRole('Backend API', undefined), 'developer');
 });
 
 test('join honours the configured worktree isolation', async () => {

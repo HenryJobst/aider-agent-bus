@@ -7,7 +7,7 @@ import { z } from 'zod';
 import type { ExtensionContext, ToolDefinition } from '@aiderdesk/extensions';
 
 import type { ProjectRuntime } from './core/runtime.js';
-import { ensureMaster, joinWorker, spawnWorkers, stopWorker } from './orchestration/team.js';
+import { deriveJoinName, ensureMaster, inferRole, joinWorker, spawnWorkers, stopWorker } from './orchestration/team.js';
 
 const workerSchema = z.object({
   name: z.string().min(1).describe('Short worker name, used in the agent-bus identity, e.g. "backend"'),
@@ -110,8 +110,15 @@ export function createTeamTools(
   };
 
   const joinSchema = z.object({
-    name: z.string().min(1).describe('Short worker name, used in the agent-bus identity'),
-    role: z.enum(['developer', 'reviewer', 'analyst']).describe('Team role for the adopted task'),
+    name: z
+      .string()
+      .min(1)
+      .optional()
+      .describe('Short worker name, used in the agent-bus identity. Defaults to the task name'),
+    role: z
+      .enum(['developer', 'reviewer', 'analyst'])
+      .optional()
+      .describe('Team role for the adopted task. Defaults to the profile or the task name'),
     taskId: z.string().optional().describe('Existing AiderDesk task to adopt; defaults to the calling task'),
     capabilities: z.array(z.string()).optional().describe('Capability tags the worker advertises on the bus'),
     switchToWorktree: z
@@ -141,7 +148,11 @@ export function createTeamTools(
         };
       }
 
-      const outcome = await joinWorker(runtime, task, input);
+      const outcome = await joinWorker(runtime, task, {
+        ...input,
+        name: input.name ?? deriveJoinName(task.data.name, task.data.id),
+        role: input.role ?? inferRole(task.data.name, task.data.agentProfileId),
+      });
       if (outcome.ok) {
         context.triggerUIComponentsReload();
       }

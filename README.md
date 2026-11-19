@@ -74,7 +74,7 @@ Then reload extensions in AiderDesk.
 ```
 /agent-bus-init                                             # config + register this task as master
 /agent-bus-spawn backend developer Implement the users API   # new worker task, own identity, own worktree
-/agent-bus-join frontend developer                           # adopt THIS running task into the team
+/agent-bus-join                                             # adopt THIS task (name and role derived)
 /agent-bus-team                                              # roster, status, unread counts
 /agent-bus-doctor                                            # is each identity really on the bus?
 /agent-bus-stop backend                                      # interrupt
