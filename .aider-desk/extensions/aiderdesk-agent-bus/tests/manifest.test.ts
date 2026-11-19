@@ -4,7 +4,9 @@
  */
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test } from 'vitest';
 
 import type { ExtensionContext } from '@aiderdesk/extensions';
@@ -58,9 +60,15 @@ function commandsFrom(readme: string): string[] {
   return [...new Set(matches.map((command) => command.replace(/^\//, '')))].sort();
 }
 
-test('English and German README document the same commands', () => {
-  const english = readFileSync(new URL('../../../../README.md', import.meta.url), 'utf-8');
-  const german = readFileSync(new URL('../../../../README.de.md', import.meta.url), 'utf-8');
+// The READMEs live in the repository root. In an isolated copy (Stryker
+// sandbox, standalone extension checkout) they are absent and this drift check
+// has nothing to compare.
+const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
+const hasRepoDocs = existsSync(join(repoRoot, 'README.md')) && existsSync(join(repoRoot, 'README.de.md'));
+
+test.skipIf(!hasRepoDocs)('English and German README document the same commands', () => {
+  const english = readFileSync(join(repoRoot, 'README.md'), 'utf-8');
+  const german = readFileSync(join(repoRoot, 'README.de.md'), 'utf-8');
 
   const englishCommands = commandsFrom(english);
   const germanCommands = commandsFrom(german);

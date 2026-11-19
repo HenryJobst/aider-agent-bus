@@ -118,6 +118,7 @@ cd .aider-desk/extensions/aiderdesk-agent-bus
 
 npm run check          # format:check + lint + typecheck + tests — run before claiming done
 npm test               # Vitest
+npm run mutate:wakeup  # Stryker mutation score for src/orchestration/wakeup.ts (slow, not part of check)
 npm run typecheck      # tsc --noEmit
 npm run lint           # eslint .
 npm run format         # prettier --write .
@@ -127,6 +128,13 @@ node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/a
 
 `npm test` includes `tests/integration.bus.test.ts`, which talks to the real
 CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
+
+Mutation testing runs Stryker with the Vitest runner on one module at a time
+(`stryker.config.json`, 2 workers, 15 s timeout). The first run on `wakeup.ts`
+found 317 mutants: 51 % total, 57 % covered. Survived mutants are the test
+backlog. Keep it out of `npm run check`: a run takes minutes, and
+`vitest.related` also pulls in tests that reach the module indirectly, so the
+score covers more than the module's own test file.
 
 ### Rules for changes
 

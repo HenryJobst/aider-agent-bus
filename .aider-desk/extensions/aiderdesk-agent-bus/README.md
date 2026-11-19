@@ -296,6 +296,8 @@ types must be `import type`, unused args must be prefixed with `_`.
 
 ```bash
 npm test          # 178 tests, Vitest
+npm run test:watch
+npm run mutate:wakeup  # Stryker + Vitest runner, one module (slow, separate)
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo
@@ -308,8 +310,8 @@ What is covered without AiderDesk:
 - inbox-status normalization across agent-bus output shapes
 - CLI argument construction against a fake `agent-bus` binary, including the
   missing-binary error and the subcommands that take no scope flags
-- the real CLI for `inject` (a body starting with `--`), `now` and
-  `remove-member`, in a throwaway bus directory
+- the real CLI for `inject` (a body starting with `--`) and `remove-member`,
+  in a throwaway bus directory
 - worker spawning at the `ProjectContext` seam: task params, profile id,
   worktree fallback, model adoption, worker limit, non-git error message
 - wake-up guards: running task, cooldown, budget, empty inbox, broken CLI
@@ -336,6 +338,13 @@ What is covered without AiderDesk:
 `tests/host.ts` is the shared fake host for those last three groups: it
 instantiates the real extension and substitutes only `ProjectContext`,
 `TaskContext` and the CLI.
+
+Mutation testing uses Stryker with the Vitest runner (`stryker.config.json`)
+on one module at a time. The first run on `wakeup.ts` produced 317 mutants and
+a 51 % total / 57 % covered score; the survived list is the test backlog. The
+HTML report lands in `reports/mutation/` (gitignored). `vitest.related` also
+runs tests that reach the module indirectly, so treat the score as a signal,
+not a precise per-file number.
 
 `tests/integration.bus.test.ts` runs against the real CLI in a throwaway
 `AGENT_BUS_DIR`: two identities register, one sends, the other sees

@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['node_modules/**', 'dist/**', 'validate-ui.mjs'],
+    ignores: ['node_modules/**', 'dist/**', 'validate-ui.mjs', '.stryker-tmp/**', 'reports/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

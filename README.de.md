@@ -332,6 +332,7 @@ AGENTS.md                                  Anweisungen für Agenten (Repo + Team
 cd .aider-desk/extensions/aiderdesk-agent-bus
 npm install
 npm run check   # format:check + lint + typecheck + tests
+npm run mutate:wakeup  # Stryker-Mutationsscore für wakeup.ts (langsam, separat)
 ```
 
 178 Tests, ESLint + Prettier eingerichtet:
@@ -346,8 +347,8 @@ npm run check   # format:check + lint + typecheck + tests
 | Lifecycle | Task-Closed und -Löschung, Aufräumen verwaister Records beim Projektstart, Worktree-Events, Profil-Overrides und gelernte Defaults, UI-Gating, Timer-Ersatz beim Reload |
 | Drift | Metadata-Version vs. `package.json`, vollständige Profilform, Command-Parität zwischen englischer und deutscher README |
 | Wake integriert | echte CLI und Bus-DB: eine zugestellte Nachricht weckt genau einmal, ein stummer Worker nie |
-| Integration | echte CLI in einem temporären `AGENT_BUS_DIR`: zwei Identitäten registrieren, Nachricht, Unread-Zähler, Scope-Isolation, `inject` mit führendem `--`, `now`/`remove-member` ohne Scope; wird ohne CLI übersprungen |
-| Integration | echte CLI in einem Wegwerf-`AGENT_BUS_DIR`: zwei Identitäten registrieren, Nachricht, Unread-Zähler, Scope-Isolation; wird ohne CLI übersprungen |
+| Integration | echte CLI in einem temporären `AGENT_BUS_DIR`: zwei Identitäten registrieren, Nachricht, Unread-Zähler, Scope-Isolation, `inject` mit führendem `--`, `remove-member` ohne Scope; wird ohne CLI übersprungen |
+| Mutation | Stryker + Vitest-Runner auf `wakeup.ts`: 317 Mutanten, erster Lauf 51 % total / 57 % covered; die überlebenden Mutanten sind die Test-Backlog-Liste |
 
 Design-Entscheidungen und Stolperfallen (expliziter Bus-Scope, keine
 blockierenden Inbox-Waits, Worktree-Regeln) stehen in [`AGENTS.md`](AGENTS.md)

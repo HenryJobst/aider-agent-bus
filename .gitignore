@@ -2,6 +2,10 @@
 node_modules/
 dist/
 
+# mutation testing artifacts
+.aider-desk/extensions/aiderdesk-agent-bus/.stryker-tmp/
+.aider-desk/extensions/aiderdesk-agent-bus/reports/
+
 # macOS
 .DS_Store
 

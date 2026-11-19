@@ -3,3 +3,5 @@ dist
 package-lock.json
 validate-ui.mjs
 *.md
+reports
+.stryker-tmp
