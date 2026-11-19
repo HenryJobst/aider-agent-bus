@@ -20,14 +20,18 @@ zwischen zwei Systemen, die es schon gibt.
 
 ## Status
 
-Phase 1 (Proof of Concept). Abgedeckt durch 79 Tests: Tasks mit Profil,
+Phase 1 (Proof of Concept). Abgedeckt durch 87 Tests: Tasks mit Profil,
 Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
 Inbox-Polling und Aufwecken, Team-Commands/-Tools, Dashboard, Config-/State-
-Persistenz und ein Integrationstest gegen die echte CLI. Live verifiziert:
-Extension-Laden, Command-Ausführung, Config-/State-Schreiben, Registrierung der
-Agenten auf dem Bus und die Panel-Aktionen. Noch nicht durchgängig bewiesen:
-Worktree-Erzeugung über `createTask` und eine Task, die ein delegiertes
-Arbeitspaket abschließt.
+Persistenz und ein Integrationstest gegen die echte CLI.
+
+Live verifiziert: Extension-Laden, Command-Ausführung, Config-/State-Schreiben,
+Registrierung der Agenten auf dem Bus, Panel-Refresh, Adoption inklusive
+Worktree-Wechsel sowie ein Master, der Board-Tasks delegiert und Worker, die sie
+claimen.
+
+Noch ungeprüft: ein delegiertes Arbeitspaket, das mit Review und Merge
+durchläuft, und die Panel-Pfade stop / stop all / stumm / Klick-zum-Öffnen.
 
 ## Installation
 

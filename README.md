@@ -20,13 +20,17 @@ systems that already exist.
 
 ## Status
 
-Phase 1 (proof of concept). Covered by 79 tests: spawning tasks with profile,
+Phase 1 (proof of concept). Covered by 87 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, team commands/tools, dashboard, config/state persistence, and a
-real-CLI integration test. Verified on the live app: extension load, command
-execution, config/state writes, agents registering on the bus and the panel
-actions. Not yet proven end-to-end: worktree creation through `createTask` and a
-task that finishes a delegated work package.
+real-CLI integration test.
+
+Verified on the live app: extension load, command execution, config/state
+writes, agents registering on the bus, panel refresh, adoption including the
+worktree switch, and a master that delegates board tasks which workers claim.
+
+Still unverified: a delegated work package finished end to end with review and
+merge, and the panel's stop/stop-all/mute/click-to-open paths.
 
 ## Install
 
@@ -296,7 +300,7 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-79 tests, ESLint + Prettier configured:
+87 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|
