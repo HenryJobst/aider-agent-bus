@@ -81,6 +81,7 @@ Then reload extensions in AiderDesk.
 /agent-bus-config                   # show/change project settings
 /agent-bus-stop                     # interrupt the only running worker
 /agent-bus-remove <name>            # remove a participant from the team
+/agent-bus-leave                    # this task leaves the team, keeps running
 /agent-bus-reset confirm            # remove every identity, clear the join table
 ```
 

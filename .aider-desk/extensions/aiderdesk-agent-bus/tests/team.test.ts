@@ -10,6 +10,7 @@ import {
   ensureMaster,
   inferRole,
   joinWorker,
+  leaveTeam,
   parseSpawnArgs,
   pickStopTarget,
   registerMaster,
@@ -373,6 +374,41 @@ test('removing an unknown worker reports instead of guessing', async () => {
 
   assert.equal(result.ok, false);
   assert.match(result.error ?? '', /unknown worker/);
+});
+
+test('leaveTeam removes a worker identity but keeps the task', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('worker-task', runtime.projectDir, fake.calls);
+  await joinWorker(runtime, task, { name: 'backend', role: 'developer' });
+
+  const result = await leaveTeam(runtime, task);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.role, 'developer');
+  assert.equal(runtime.state.findByTaskId('worker-task'), undefined);
+  assert.equal(fake.calls.interrupts.length, 0);
+});
+
+test('leaveTeam clears the master identity', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('master-task', runtime.projectDir, fake.calls);
+  ensureMaster(runtime, task);
+
+  const result = await leaveTeam(runtime, task);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.role, 'master');
+  assert.equal(runtime.state.master, undefined);
+});
+
+test('leaveTeam rejects a task that never joined', async () => {
+  const { runtime, fake } = makeRuntime();
+  const task = makeTask('stranger-task', runtime.projectDir, fake.calls);
+
+  const result = await leaveTeam(runtime, task);
+
+  assert.equal(result.ok, false);
+  assert.match(result.error ?? '', /not part of the team/);
 });
 
 test('resetTeam clears master and workers even when the bus call fails', async () => {

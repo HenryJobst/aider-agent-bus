@@ -13,6 +13,7 @@ import {
   ensureMaster,
   inferRole,
   joinWorker,
+  leaveTeam,
   parseSpawnArgs,
   pickStopTarget,
   registerMaster,
@@ -291,6 +292,26 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
+  const leave: CommandDefinition = {
+    name: 'agent-bus-leave',
+    description: 'This task leaves the team: identity and wake-ups removed, the task keeps running',
+    execute: async (_args, context) => {
+      const task = context.getTaskContext();
+      if (!task) {
+        reportError(context, 'Open the task that should leave and run the command inside it.');
+        return;
+      }
+      const runtime = getRuntime(context);
+      const result = await leaveTeam(runtime, task);
+      if (!result.ok) {
+        reportError(context, result.error ?? 'leave failed');
+        return;
+      }
+      context.triggerUIComponentsReload();
+      report(context, `${result.agentName} left the team (${result.role}); the task keeps running`);
+    },
+  };
+
   const reset: CommandDefinition = {
     name: 'agent-bus-reset',
     description: 'Remove every team identity and clear the join table: /agent-bus-reset confirm',
@@ -333,5 +354,5 @@ export function createTeamCommands(getRuntime: (context: ExtensionContext) => Pr
     },
   };
 
-  return [init, team, config, doctor, spawn, join, stop, remove, reset];
+  return [init, team, config, doctor, spawn, join, stop, remove, leave, reset];
 }

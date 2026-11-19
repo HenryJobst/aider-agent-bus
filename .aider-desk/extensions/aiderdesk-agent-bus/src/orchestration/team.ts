@@ -499,6 +499,42 @@ export function stopAll(runtime: ProjectRuntime): { stopped: string[]; skipped: 
 }
 
 /**
+ * The task the command runs in leaves the team: its bus registration and
+ * wake-ups go away, the task itself keeps running with its conversation.
+ */
+export async function leaveTeam(
+  runtime: ProjectRuntime,
+  task: TaskContext,
+): Promise<{ ok: boolean; agentName?: string; role?: string; error?: string }> {
+  const taskId = task.data.id;
+
+  if (runtime.state.master?.taskId === taskId) {
+    const { agentName } = runtime.state.master;
+    try {
+      await runtime.bus.removeMember(agentName);
+    } catch (error) {
+      runtime.log(
+        `bus registration of ${agentName} could not be removed: ${error instanceof Error ? error.message : String(error)}`,
+        'warn',
+      );
+    }
+    runtime.state.clearMaster();
+    runtime.unreadByTask.delete(taskId);
+    runtime.lastInboxError.delete(taskId);
+    runtime.log(`${agentName} left the team (master)`, 'info');
+    return { ok: true, agentName, role: 'master' };
+  }
+
+  const worker = runtime.state.findByTaskId(taskId);
+  if (!worker) {
+    return { ok: false, error: 'this task is not part of the team' };
+  }
+
+  const result = await removeWorker(runtime, worker.agentName);
+  return { ...result, role: worker.role };
+}
+
+/**
  * Removes every identity of the project's team, the master included, and clears
  * the join table. Bus-side failures do not stop the local cleanup; they are
  * reported so a stale registration can be removed by hand.

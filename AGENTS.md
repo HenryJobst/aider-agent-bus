@@ -76,6 +76,7 @@ project only the global one is loaded.
 | `/agent-bus-config [key] [value]` | show or change one validated setting without editing JSON |
 | `/agent-bus-stop [name]` | interrupt a worker (default: the only running one), keep the registration |
 | `/agent-bus-remove <name>` | remove a participant (bus registration + wake-ups); task stays open |
+| `/agent-bus-leave` | the current task leaves the team; identity and wake-ups go, task keeps running |
 | `/agent-bus-reset confirm` | remove every identity and clear the join table; tasks stay open |
 
 Tools (master profile only, others see `agent_bus_get_team`):
