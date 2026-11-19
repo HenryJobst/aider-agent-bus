@@ -5,6 +5,14 @@
   "main": "index.ts",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HenryJobst/aider-agent-bus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HenryJobst/aider-agent-bus/issues"
+  },
+  "homepage": "https://github.com/HenryJobst/aider-agent-bus#readme",
   "keywords": [
     "aiderdesk",
     "extension",

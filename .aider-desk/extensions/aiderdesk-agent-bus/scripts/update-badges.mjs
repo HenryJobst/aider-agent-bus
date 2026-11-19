@@ -25,6 +25,9 @@ const readmes = [
   { path: join(repoRoot, 'README.de.md'), development: '#entwicklung' },
 ];
 
+const packageJson = JSON.parse(readFileSync(join(extensionDir, 'package.json'), 'utf-8'));
+const repositoryUrl = (packageJson.repository?.url ?? '').replace(/^git\+/, '').replace(/\.git$/, '');
+
 const vitestBin = join(extensionDir, 'node_modules', 'vitest', 'vitest.mjs');
 if (!existsSync(vitestBin)) {
   throw new Error(`Vitest is not installed at ${vitestBin} — run "npm install" in the extension first.`);
@@ -89,6 +92,9 @@ function badge(label, message, colour, link) {
 function renderBadges(tests, statements, branches) {
   return [
     startMarker,
+    ...(repositoryUrl
+      ? [`[![CI](${repositoryUrl}/actions/workflows/ci.yml/badge.svg)](${repositoryUrl}/actions/workflows/ci.yml)`]
+      : []),
     badge('tests', String(tests), 'brightgreen', '#development'),
     badge(
       'coverage',

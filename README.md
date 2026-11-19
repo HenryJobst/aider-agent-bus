@@ -3,6 +3,7 @@
 [English](README.md) · [Deutsch](README.de.md)
 
 <!-- badges:start -->
+[![CI](https://github.com/HenryJobst/aider-agent-bus/actions/workflows/ci.yml/badge.svg)](https://github.com/HenryJobst/aider-agent-bus/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-271-brightgreen)](#development)
 [![coverage](https://img.shields.io/badge/coverage-97.3%25%20stmts%20%2F%2091.0%25%20branches-brightgreen)](#development)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -311,6 +312,7 @@ README.md                                  this file
 README.de.md                               German version
 LICENSE                                    MIT
 AGENTS.md                                  instructions for agents (repo + team membership)
+.github/workflows/ci.yml                   format, lint, typecheck and tests on every push
 .aider-desk/agent-bus.example.json         project config template
 .aider-desk/mcp-servers.example.json       MCP server entry template
 .aider-desk/extensions/aiderdesk-agent-bus/
@@ -333,6 +335,10 @@ npm run coverage  # Vitest V8 coverage report
 npm run badges  # refresh the tests/coverage badges in both READMEs
 npm run sync    # copy into ~/.aider-desk/extensions (reloads every extension!)
 ```
+
+GitHub Actions runs the same checks — format, lint, typecheck and tests — on
+every push and pull request (`.github/workflows/ci.yml`). All four run even when
+one fails, so one push reports every problem.
 
 AiderDesk reloads **all** extensions whenever a file under
 `~/.aider-desk/extensions/` changes. Sync deliberately, not on every save.

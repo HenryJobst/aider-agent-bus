@@ -3,6 +3,7 @@
 [English](README.md) · [Deutsch](README.de.md)
 
 <!-- badges:start -->
+[![CI](https://github.com/HenryJobst/aider-agent-bus/actions/workflows/ci.yml/badge.svg)](https://github.com/HenryJobst/aider-agent-bus/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-271-brightgreen)](#entwicklung)
 [![coverage](https://img.shields.io/badge/coverage-97.3%25%20stmts%20%2F%2091.0%25%20branches-brightgreen)](#entwicklung)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -323,6 +324,7 @@ README.md                                  englische Fassung
 README.de.md                               diese Datei
 LICENSE                                    MIT
 AGENTS.md                                  Anweisungen für Agenten (Repo + Teammitgliedschaft)
+.github/workflows/ci.yml                   Format, Lint, Typecheck und Tests bei jedem Push
 .aider-desk/agent-bus.example.json         Vorlage für die Projekt-Config
 .aider-desk/mcp-servers.example.json       Vorlage für den MCP-Eintrag
 .aider-desk/extensions/aiderdesk-agent-bus/
@@ -344,6 +346,10 @@ npm run mutate:wakeup  # Stryker-Mutationsscore für wakeup.ts (langsam, separat
 npm run coverage  # Vitest-V8-Coverage-Report
 npm run badges  # Tests-/Coverage-Badges in beiden READMEs aktualisieren
 ```
+
+GitHub Actions führt dieselben Checks aus — Format, Lint, Typecheck und Tests —
+bei jedem Push und Pull Request (`.github/workflows/ci.yml`). Alle vier laufen
+auch dann, wenn einer fehlschlägt, damit ein Push alle Probleme meldet.
 
 Vitest-Suite, ESLint + Prettier eingerichtet:
 
