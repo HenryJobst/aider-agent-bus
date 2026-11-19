@@ -126,8 +126,8 @@ Clicking a name (master or worker) activates that task in AiderDesk. Each worker
 row has a bell that mutes or restores its wake-ups. The header holds
 `stop all`, which interrupts every running agent including the
 master, after a confirmation. It is only registered for projects that already have a team
-(master or workers); an uninitialised project does not get a floating panel.
-It is docked, not a floating window, so it does not cover the chat.
+(master or workers); an uninitialised project gets no panel at all. It is docked,
+not floating, so it never covers the chat.
 
 Worker identity is `"<project>-<name>"`, e.g. `webshop-backend`. Each spawned
 task is started with a registration prompt that contains the exact `register`
