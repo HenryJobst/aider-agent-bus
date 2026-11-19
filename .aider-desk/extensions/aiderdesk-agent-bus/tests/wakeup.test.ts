@@ -6,7 +6,7 @@ import type { BusClient } from '../src/bus/client.js';
 import type { ProjectRuntime } from '../src/core/runtime.js';
 import { spawnWorkers } from '../src/orchestration/team.js';
 import { InboxWatcher } from '../src/orchestration/wakeup.js';
-import { makeRuntime } from './fakes.js';
+import { makeRuntime, makeTask } from './fakes.js';
 
 function stubBus(runtime: ProjectRuntime, unread: number): void {
   runtime.bus = {
@@ -294,4 +294,89 @@ test('closed workers are skipped by the poller', async () => {
   await watcher.pollOnce();
 
   assert.equal(fake.calls.prompts.length, promptsBefore);
+});
+
+function withMaster(unread: number) {
+  const harness = makeRuntime();
+  harness.fake.tasks.set('master-task', makeTask('master-task', harness.projectDir, harness.fake.calls));
+  harness.runtime.state.setMaster({ agentName: 'test-project-master', taskId: 'master-task' });
+  stubBus(harness.runtime, unread);
+  return { ...harness, watcher: new InboxWatcher(harness.runtime) };
+}
+
+test('the master is woken when it has unread messages', async () => {
+  const { runtime, fake, watcher } = withMaster(2);
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, 1);
+  assert.equal(fake.calls.prompts[0].id, 'master-task');
+  assert.equal(fake.calls.prompts[0].profileId, 'agent-bus-master');
+  assert.match(fake.calls.prompts[0].prompt, /2 unread agent-bus messages/);
+
+  const master = runtime.state.master;
+  assert.equal(master?.wakes, 1);
+  assert.equal(master?.status, 'working');
+  assert.ok(master?.lastWakeAt);
+});
+
+test('a running master is never woken', async () => {
+  const { runtime, fake, watcher } = withMaster(2);
+  runtime.runningTasks.add('master-task');
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, 0);
+});
+
+test('the master wake respects the cooldown', async () => {
+  const { runtime, fake, watcher } = withMaster(2);
+  runtime.state.updateMaster({ lastWakeAt: new Date().toISOString() });
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, 0);
+});
+
+test('a new backlog reopens a parked master', async () => {
+  const { runtime, fake, watcher } = withMaster(3);
+  runtime.state.updateMaster({
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 2,
+    wakeBudgetLogged: true,
+    status: 'blocked',
+  });
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, 1);
+  assert.equal(runtime.state.master?.wakes, 1);
+  assert.equal(runtime.state.master?.status, 'working');
+});
+
+test('an unchanged master backlog stays parked', async () => {
+  const { runtime, fake, watcher } = withMaster(2);
+  runtime.state.updateMaster({
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 2,
+    wakeBudgetLogged: true,
+    status: 'blocked',
+  });
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, 0);
+  assert.equal(runtime.state.master?.status, 'blocked');
+});
+
+test('the master is woken before any worker', async () => {
+  const { runtime, fake, watcher } = await setup(2);
+  fake.tasks.set('master-task', makeTask('master-task', runtime.projectDir, fake.calls));
+  runtime.state.setMaster({ agentName: 'test-project-master', taskId: 'master-task' });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, promptsBefore + 1);
+  assert.equal(fake.calls.prompts.at(-1)?.id, 'master-task', 'coordination wins over worker wakes');
 });

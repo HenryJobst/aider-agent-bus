@@ -66,6 +66,22 @@ test('switching projects moves the polling to the new project', async () => {
   assert.equal(inboxCalls(first), firstAfterFirstPoll + 1);
 });
 
+test('a master-only team is polled too', async () => {
+  const host = makeHost();
+  host.setCurrentTask(host.createTask('master-task', 'pm'));
+  await host.ext
+    .getCommands(host.context)
+    .find((c) => c.name === 'agent-bus-init')!
+    .execute([], host.context);
+  host.setCurrentTask(null);
+  await host.ext.onProjectStarted({ baseDir: host.projectDir } as never, host.context);
+  const before = inboxCalls(host);
+
+  await poll(host.ext);
+
+  assert.equal(inboxCalls(host), before + 1, 'the master inbox is checked without any worker');
+});
+
 test('stopping a project drops its runtime and stops its polling', async () => {
   const host = makeHost();
   await runningWorker(host);

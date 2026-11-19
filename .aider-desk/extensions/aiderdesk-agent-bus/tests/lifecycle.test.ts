@@ -206,3 +206,24 @@ test('a reloaded extension replaces the poll timer instead of adding a second on
     second.onUnload();
   }
 });
+
+test('a master run is tracked in the join table and returns to idle', async () => {
+  const h = makeHost();
+  h.setCurrentTask(h.createTask('master-task', 'pm'));
+  await h.ext
+    .getCommands(h.context)
+    .find((c) => c.name === 'agent-bus-init')!
+    .execute([], h.context);
+
+  await startAgent(h, 'master-task');
+  let view = (await h.ext.getUIExtensionData('agent-bus-dashboard', h.context)) as {
+    master: { status?: string } | null;
+  };
+  assert.equal(view.master?.status, 'working');
+
+  await h.ext.onAgentFinished({ aborted: false } as never, h.context);
+  view = (await h.ext.getUIExtensionData('agent-bus-dashboard', h.context)) as {
+    master: { status?: string } | null;
+  };
+  assert.equal(view.master?.status, 'idle');
+});

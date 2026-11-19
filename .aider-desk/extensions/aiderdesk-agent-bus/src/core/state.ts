@@ -32,6 +32,12 @@ export interface WorkerRecord {
 export interface MasterRecord {
   agentName: string;
   taskId: string;
+  status?: WorkerStatus;
+  muted?: boolean;
+  wakes?: number;
+  lastWakeAt?: string;
+  lastWakeUnread?: number;
+  wakeBudgetLogged?: boolean;
 }
 
 export interface StateSnapshot {
@@ -108,6 +114,15 @@ export class AgentBusState {
   setMaster(record: MasterRecord): void {
     this.snapshot.master = record;
     this.persist();
+  }
+
+  updateMaster(patch: Partial<MasterRecord>): MasterRecord | undefined {
+    if (!this.snapshot.master) {
+      return undefined;
+    }
+    Object.assign(this.snapshot.master, patch);
+    this.persist();
+    return this.snapshot.master;
   }
 
   clearMaster(): void {

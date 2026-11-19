@@ -253,6 +253,10 @@ interrupted cleanly, so the extension does not use it. Instead:
 3. `onAgentFinished` performs the same check immediately, so a reply arrives
    without waiting for the next tick.
 
+The master is checked first and follows the same rules: cooldown, budget and
+backlog. Without that, replies from workers stayed unread until someone typed
+into the master task.
+
 Guards: `wakeCooldownMs` (default 60 s), `maxWakesPerTask` (default 3), never
 wake a running task, at most one wake per poll tick, and an agent that ignored
 its inbox after a wake is not woken again while the backlog stays the same.
@@ -285,7 +289,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 146 tests, node:test + tsx
+npm test          # 154 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo

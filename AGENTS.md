@@ -149,7 +149,9 @@ CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
    and `maxWakesPerTask` — keep all three. The budget is per backlog, not per
    worker lifetime: a new or emptied backlog resets `wakes`, and parked workers
    are still checked. Without that reset a worker that once hit the budget was
-   parked forever and new work from the master was never delivered.
+   parked forever and new work from the master was never delivered. The master
+   is a wake target too (checked first, same guards); otherwise worker results
+   stayed unread until the user typed into the master task.
 6. **Worktrees come from AiderDesk**, not from `git worktree add` in the
    extension. Use `createTask({ workingMode })` / `switchToWorktreeWorkingMode`.
 7. **`no-console` is an error**; log through `context.log`. Type-only imports

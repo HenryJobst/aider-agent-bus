@@ -22,7 +22,7 @@ zwischen zwei Systemen, die es schon gibt.
 
 **v0.2 — nutzbar, nicht gehärtet.** Für die Abstimmung zwischen Sessions
 funktional vollständig; mit rauen Kanten bei Merges und allem, was unten nicht
-als verifiziert aufgeführt ist. Abgedeckt durch 146 Tests: Tasks mit Profil,
+als verifiziert aufgeführt ist. Abgedeckt durch 154 Tests: Tasks mit Profil,
 Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
 Inbox-Polling und Aufwecken, jeder Slash-Command samt Validierung, Task- und
 Worktree-Events, Profil-Overrides, Dashboard-Gating, Config-/State-Persistenz
@@ -153,11 +153,15 @@ wecken. Das macht die Extension:
 3. `onAgentFinished` führt dieselbe Prüfung sofort aus, damit Antworten nicht auf
    den nächsten Tick warten.
 
+Der Master ist ebenfalls Teilnehmer: Er wird zuerst geprüft, mit denselben
+Regeln für Cooldown, Budget und Backlog. Sonst blieben Ergebnisse der Worker
+ungelesen liegen, bis der Nutzer in der Master-Task etwas eingibt.
+
 Kein Worker blockiert in `inbox(wait_s: 110)` – das würde seine Agent-Loop
 belegen und ließe sich nicht unterbrechen. Bremsen: `wakeCooldownMs`,
 `maxWakesPerTask`, und eine laufende Task wird nie geweckt. Das Budget gilt pro
 Backlog: neue Nachrichten (oder eine leere Inbox) setzen es zurück, geparkte
-Worker werden weiter geprüft. Ein unveränderter Backlog bleibt geparkt – das
+Teilnehmer werden weiter geprüft. Ein unveränderter Backlog bleibt geparkt – das
 stoppt die Wake-Schleife.
 
 Gepollt wird nur das Projekt, das AiderDesk gerade anzeigt. Ein Projektwechsel
@@ -328,7 +332,7 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-146 Tests, ESLint + Prettier eingerichtet:
+154 Tests, ESLint + Prettier eingerichtet:
 
 | Suite | Deckt ab |
 |---|---|

@@ -22,7 +22,7 @@ systems that already exist.
 
 **v0.2 — usable, not hardened.** Feature-complete for coordination between
 sessions; expect rough edges around merges and anything not listed as verified
-below. Covered by 146 tests: spawning tasks with profile,
+below. Covered by 154 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, every slash command and its validation, task/worktree events,
 profile overrides, dashboard gating, config/state persistence, and a real-CLI
@@ -146,10 +146,14 @@ does that:
 3. `onAgentFinished` runs the same check immediately, so replies land without
    waiting for the next tick.
 
+The master is a participant too: it is checked first, with the same cooldown,
+budget and backlog rules. Otherwise results from workers sat unread until the
+user typed something into the master task.
+
 No worker blocks in `inbox(wait_s: 110)` — that would occupy its agent loop and
 could not be interrupted. Guards: `wakeCooldownMs`, `maxWakesPerTask`, and a
 running task is never woken. The budget belongs to one backlog: a new message
-(or an emptied inbox) resets it, and parked workers are still checked. An
+(or an emptied inbox) resets it, and parked participants are still checked. An
 unchanged backlog stays parked — that is what stops the wake loop.
 
 Polling is scoped to the project AiderDesk currently shows. Switching projects
@@ -319,7 +323,7 @@ npm run sync    # copy into ~/.aider-desk/extensions (reloads every extension!)
 AiderDesk reloads **all** extensions whenever a file under
 `~/.aider-desk/extensions/` changes. Sync deliberately, not on every save.
 
-146 tests, ESLint + Prettier configured:
+154 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|

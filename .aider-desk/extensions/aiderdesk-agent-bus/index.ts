@@ -159,7 +159,9 @@ export default class AgentBusExtension implements Extension {
       return;
     }
     const runtime = this.runtimes.get(projectDir);
-    if (!runtime || !runtime.config.enabled || runtime.state.workers.length === 0) {
+    // A master-only team must be polled too: the master needs to hear back
+    // from workers even before the first one is spawned.
+    if (!runtime || !runtime.config.enabled || !runtime.hasTeam) {
       return;
     }
     const now = Date.now();
@@ -245,6 +247,9 @@ export default class AgentBusExtension implements Extension {
     if (runtime.state.findByTaskId(taskId)) {
       runtime.state.updateWorker(taskId, { status: 'working' });
     }
+    if (runtime.state.master?.taskId === taskId) {
+      runtime.state.updateMaster({ status: 'working' });
+    }
   }
 
   async onAgentFinished(_event: AgentFinishedEvent, context: ExtensionContext): Promise<void> {
@@ -257,6 +262,11 @@ export default class AgentBusExtension implements Extension {
 
     const worker = runtime.state.findByTaskId(taskId);
     if (!worker) {
+      // The master is not a worker record, but its run ends the same way.
+      if (runtime.state.master?.taskId === taskId) {
+        runtime.state.updateMaster({ status: 'idle' });
+        context.triggerUIDataRefresh(DASHBOARD_ID);
+      }
       return;
     }
     runtime.state.updateWorker(taskId, { status: 'idle' });

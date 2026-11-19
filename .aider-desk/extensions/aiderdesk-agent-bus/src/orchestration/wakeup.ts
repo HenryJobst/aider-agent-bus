@@ -10,6 +10,7 @@ import { BusUnavailableError } from '../bus/client.js';
 import { startWithRoleProfile } from './team.js';
 import { inboxWakePrompt } from '../bus/prompts.js';
 import type { ProjectRuntime } from '../core/runtime.js';
+import type { MasterRecord } from '../core/state.js';
 
 export class InboxWatcher {
   constructor(private readonly runtime: ProjectRuntime) {}
@@ -71,9 +72,121 @@ export class InboxWatcher {
     }
   }
 
+  /**
+   * The master collects results and unblocks workers, so it is woken first.
+   * Without this it stayed idle while messages from workers piled up, because
+   * the poller only knew about worker records.
+   */
+  private async checkMaster(): Promise<boolean> {
+    const master = this.runtime.state.master;
+    if (!master || master.muted || this.runtime.runningTasks.has(master.taskId)) {
+      return false;
+    }
+
+    let unread: number;
+    try {
+      const status = await this.runtime.bus.inboxStatus(master.agentName);
+      unread = status.unread;
+      this.runtime.unreadByTask.set(master.taskId, unread);
+      this.runtime.lastInboxError.delete(master.taskId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // Unregistered is a state, not an error; a broken CLI is reported.
+      if (error instanceof BusUnavailableError || !message.includes('is not registered')) {
+        this.runtime.lastInboxError.set(master.taskId, message);
+      }
+      return false;
+    }
+
+    const knownBacklog = typeof master.lastWakeUnread === 'number';
+    if (unread === 0 || !knownBacklog || unread !== master.lastWakeUnread) {
+      this.resetMasterBudget();
+    }
+
+    if ((master.wakes ?? 0) >= this.runtime.config.orchestration.maxWakesPerTask) {
+      if (!master.wakeBudgetLogged) {
+        this.runtime.state.updateMaster({ status: 'blocked', wakeBudgetLogged: true });
+        this.runtime.log(
+          `${master.agentName} reached maxWakesPerTask (${master.wakes ?? 0}) for the same backlog — parked until it changes`,
+          'warn',
+        );
+      }
+      return false;
+    }
+
+    if (unread === 0) {
+      return false;
+    }
+    // Same guards as workers: no wake for a backlog that did not move.
+    if (typeof master.lastWakeUnread === 'number' && unread >= master.lastWakeUnread) {
+      return false;
+    }
+    const cooldown = this.runtime.config.orchestration.wakeCooldownMs;
+    const last = master.lastWakeAt ? Date.parse(master.lastWakeAt) : 0;
+    if (Number.isFinite(last) && Date.now() - last < cooldown) {
+      return false;
+    }
+
+    return this.wakeMaster(master, unread);
+  }
+
+  /** Fresh budget for a new or emptied master backlog. */
+  private resetMasterBudget(): void {
+    const master = this.runtime.state.master;
+    if (!master) {
+      return;
+    }
+    if (
+      (master.wakes ?? 0) === 0 &&
+      !master.wakeBudgetLogged &&
+      master.lastWakeUnread === undefined &&
+      master.status !== 'blocked'
+    ) {
+      return;
+    }
+    this.runtime.state.updateMaster({
+      wakes: 0,
+      lastWakeUnread: undefined,
+      wakeBudgetLogged: false,
+      ...(master.status === 'blocked' ? { status: 'idle' } : {}),
+    });
+  }
+
+  private async wakeMaster(master: MasterRecord, unread: number): Promise<boolean> {
+    const task = this.runtime.projectContext.getTask(master.taskId);
+    const identity = this.runtime.masterIdentity();
+    if (!task || !identity) {
+      this.runtime.log(`cannot wake master: task ${master.taskId} is not loaded`, 'warn');
+      return false;
+    }
+
+    try {
+      // Same rule as spawn/join: run with the role profile and the task's mode.
+      await startWithRoleProfile(this.runtime, task, 'master', inboxWakePrompt(unread, identity));
+      this.runtime.state.updateMaster({
+        wakes: (master.wakes ?? 0) + 1,
+        lastWakeAt: new Date().toISOString(),
+        lastWakeUnread: unread,
+        status: 'working',
+      });
+      this.runtime.log(`woke master ${master.agentName} for ${unread} unread message(s)`, 'info');
+      return true;
+    } catch (error) {
+      this.runtime.log(
+        `wake failed for ${master.agentName}: ${error instanceof Error ? error.message : String(error)}`,
+        'warn',
+      );
+      return false;
+    }
+  }
+
   async pollOnce(): Promise<void> {
     // One wake per tick: several simultaneous agent runs are what makes the
-    // app feel hung.
+    // app feel hung. The master goes first.
+    if (await this.checkMaster()) {
+      return;
+    }
+
     for (const worker of this.runtime.state.workers) {
       if (worker.status === 'closed' || worker.status === 'starting') {
         continue;
