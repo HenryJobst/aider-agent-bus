@@ -10,22 +10,20 @@ import { BusUnavailableError } from '../bus/client.js';
 import { startWithRoleProfile } from './team.js';
 import { inboxWakePrompt } from '../bus/prompts.js';
 import type { ProjectRuntime } from '../core/runtime.js';
-import type { MasterRecord } from '../core/state.js';
+import type { MasterRecord, WorkerRecord } from '../core/state.js';
 
 export class InboxWatcher {
   constructor(private readonly runtime: ProjectRuntime) {}
 
-  private canWake(taskId: string, unread: number): boolean {
-    if (this.runtime.runningTasks.has(taskId)) {
+  private canWake(worker: WorkerRecord, unread: number): boolean {
+    if (this.runtime.runningTasks.has(worker.taskId)) {
       return false;
     }
-    const worker = this.runtime.state.findByTaskId(taskId);
-    if (!worker || worker.status === 'closed' || worker.muted) {
+    if (worker.status === 'closed' || worker.muted) {
       return false;
     }
-    if (worker.wakes >= this.runtime.config.orchestration.maxWakesPerTask) {
-      return false;
-    }
+    // The budget is checked by `checkWorker` before it gets here; a parked
+    // worker returns early.
     // An agent that ignored its inbox after the last wake must not be woken
     // again for the same backlog; only progress (unread dropping) re-enables it.
     if (typeof worker.lastWakeUnread === 'number' && unread >= worker.lastWakeUnread) {
@@ -36,14 +34,10 @@ export class InboxWatcher {
     return Number.isFinite(last) ? Date.now() - last >= cooldown : true;
   }
 
-  private async wake(taskId: string, unread: number): Promise<void> {
-    const worker = this.runtime.state.findByTaskId(taskId);
-    if (!worker) {
-      return;
-    }
-    const task = this.runtime.projectContext.getTask(taskId);
+  private async wake(worker: WorkerRecord, unread: number): Promise<void> {
+    const task = this.runtime.projectContext.getTask(worker.taskId);
     if (!task) {
-      this.runtime.log(`cannot wake ${worker.agentName}: task ${taskId} is not loaded`, 'warn');
+      this.runtime.log(`cannot wake ${worker.agentName}: task ${worker.taskId} is not loaded`, 'warn');
       return;
     }
 
@@ -57,7 +51,7 @@ export class InboxWatcher {
         worker.role,
         inboxWakePrompt(unread, this.runtime.identityFor(worker)),
       );
-      this.runtime.state.updateWorker(taskId, {
+      this.runtime.state.updateWorker(worker.taskId, {
         wakes: worker.wakes + 1,
         lastWakeAt: new Date().toISOString(),
         lastWakeUnread: unread,
@@ -98,8 +92,9 @@ export class InboxWatcher {
       return false;
     }
 
-    const knownBacklog = typeof master.lastWakeUnread === 'number';
-    if (unread === 0 || !knownBacklog || unread !== master.lastWakeUnread) {
+    // `undefined !== unread` is always true, so an unknown backlog is covered
+    // without a separate check.
+    if (unread === 0 || unread !== master.lastWakeUnread) {
       this.resetMasterBudget();
     }
 
@@ -136,6 +131,8 @@ export class InboxWatcher {
     if (!master) {
       return;
     }
+    // Only skips an idempotent state write; the observable state is identical.
+    // Stryker disable all
     if (
       (master.wakes ?? 0) === 0 &&
       !master.wakeBudgetLogged &&
@@ -144,6 +141,7 @@ export class InboxWatcher {
     ) {
       return;
     }
+    // Stryker restore all
     this.runtime.state.updateMaster({
       wakes: 0,
       lastWakeUnread: undefined,
@@ -208,6 +206,8 @@ export class InboxWatcher {
     if (!worker) {
       return;
     }
+    // Only skips an idempotent state write; the observable state is identical.
+    // Stryker disable all
     if (
       worker.wakes === 0 &&
       !worker.wakeBudgetLogged &&
@@ -216,6 +216,7 @@ export class InboxWatcher {
     ) {
       return;
     }
+    // Stryker restore all
     this.runtime.state.updateWorker(taskId, {
       wakes: 0,
       lastWakeUnread: undefined,
@@ -236,9 +237,6 @@ export class InboxWatcher {
       unread = status.unread;
       this.runtime.unreadByTask.set(taskId, unread);
       this.runtime.lastInboxError.delete(taskId);
-      if (worker.wakeBudgetLogged && typeof worker.lastWakeUnread === 'number' && unread < worker.lastWakeUnread) {
-        this.runtime.state.updateWorker(taskId, { wakeBudgetLogged: false });
-      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (error instanceof BusUnavailableError) {
@@ -259,8 +257,9 @@ export class InboxWatcher {
     // untouched backlog stays parked; a new or emptied one gets a fresh budget.
     // Otherwise a worker that once hit the budget was parked forever and new
     // work from the master was never delivered.
-    const knownBacklog = typeof worker.lastWakeUnread === 'number';
-    if (unread === 0 || !knownBacklog || unread !== worker.lastWakeUnread) {
+    // `undefined !== unread` is always true, so an unknown backlog is covered
+    // without a separate check.
+    if (unread === 0 || unread !== worker.lastWakeUnread) {
       this.resetWakeBudget(taskId);
     }
 
@@ -280,8 +279,8 @@ export class InboxWatcher {
     }
 
     if (unread > 0) {
-      if (this.canWake(taskId, unread)) {
-        await this.wake(taskId, unread);
+      if (this.canWake(worker, unread)) {
+        await this.wake(worker, unread);
       }
     }
     return unread;

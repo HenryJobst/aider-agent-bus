@@ -130,9 +130,10 @@ node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/a
 CLI in a throwaway `AGENT_BUS_DIR`. It skips itself when the CLI is absent.
 
 Mutation testing runs Stryker with the Vitest runner on one module at a time
-(`stryker.config.json`, 2 workers, 15 s timeout). The first run on `wakeup.ts`
-found 317 mutants: 51 % total, 57 % covered. Survived mutants are the test
-backlog. Keep it out of `npm run check`: a run takes minutes, and
+(`stryker.config.json`, 2 workers, 15 s timeout). `wakeup.ts` started at 51 %
+total / 57 % covered and reached 77 % / 81 % after the first gap-closing pass
+(276 mutants). What remains is mostly log strings, return-value mutants and two
+idempotent-write guards marked with `// Stryker disable all`. Keep it out of `npm run check`: a run takes minutes, and
 `vitest.related` also pulls in tests that reach the module indirectly, so the
 score covers more than the module's own test file.
 

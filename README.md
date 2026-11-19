@@ -22,7 +22,7 @@ systems that already exist.
 
 **v0.2.1 — usable, hardening in progress.** Feature-complete for coordination
 between sessions; expect rough edges around merges and anything not listed as
-verified below. Covered by 178 tests: spawning tasks with profile,
+verified below. Covered by 190 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, every slash command and its validation, task/worktree events,
 profile overrides, dashboard gating, config/state persistence, and a real-CLI
@@ -327,7 +327,7 @@ npm run sync    # copy into ~/.aider-desk/extensions (reloads every extension!)
 AiderDesk reloads **all** extensions whenever a file under
 `~/.aider-desk/extensions/` changes. Sync deliberately, not on every save.
 
-178 tests, ESLint + Prettier configured:
+190 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|
@@ -340,7 +340,7 @@ AiderDesk reloads **all** extensions whenever a file under
 | drift | metadata version vs `package.json`, full profile shape, command parity between the English and German README |
 | wake integrated | real CLI and bus database: a delivered message wakes exactly once, a muted worker never |
 | integration | real CLI in a throwaway `AGENT_BUS_DIR`: two identities register, message, unread counts, scope isolation, dash-safe `inject`, scope-less `remove-member`; skips when the CLI is absent |
-| mutation | Stryker + Vitest runner on `wakeup.ts`: 317 mutants, first run 51 % total / 57 % covered; the survived list is the test backlog |
+| mutation | Stryker + Vitest runner on `wakeup.ts`: 276 mutants, 77 % total / 81 % covered after the first gap-closing pass; remaining survivors are mostly log strings, return-value mutants and two idempotent-write guards |
 
 Design decisions and pitfalls (explicit bus scope, no blocking inbox waits,
 worktree rules) are documented in [`AGENTS.md`](AGENTS.md) and the

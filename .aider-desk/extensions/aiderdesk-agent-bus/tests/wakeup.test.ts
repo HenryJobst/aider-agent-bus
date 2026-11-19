@@ -428,3 +428,156 @@ test('a master task that is not loaded is not woken', async () => {
   assert.equal(fake.calls.prompts.length, 0);
   assert.equal(runtime.state.master?.wakes ?? 0, 0);
 });
+
+test('checking without waking reads the inbox but sends no prompt', async () => {
+  const { runtime, fake, watcher } = await setup(2);
+  const promptsBefore = fake.calls.prompts.length;
+
+  const unread = await watcher.checkWorker('task-1', { wake: false });
+
+  assert.equal(unread, 2);
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+  assert.equal(runtime.unreadByTask.get('task-1'), 2);
+  assert.equal(runtime.state.findByTaskId('task-1')?.wakes, 0);
+});
+
+test('an empty inbox resets the budget even when the last wake saw zero', async () => {
+  const { runtime, fake, watcher } = await setup(0);
+  runtime.state.updateWorker('task-1', {
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 0,
+    wakeBudgetLogged: true,
+    status: 'blocked',
+  });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  const worker = runtime.state.findByTaskId('task-1');
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+  assert.equal(worker?.wakes, 0);
+  assert.equal(worker?.status, 'idle');
+});
+
+test('a starting worker is not polled', async () => {
+  const { runtime, fake, watcher } = await setup(2);
+  runtime.state.updateWorker('task-1', { status: 'starting' });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+});
+
+test('a closed worker is not woken by a direct check', async () => {
+  const { runtime, fake, watcher } = await setup(2);
+  runtime.state.updateWorker('task-1', { status: 'closed' });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+});
+
+test('an invalid lastWakeAt does not block the wake', async () => {
+  const { runtime, fake, watcher } = await setup(2);
+  runtime.state.updateWorker('task-1', { lastWakeAt: 'not-a-date' });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  assert.equal(fake.calls.prompts.length, promptsBefore + 1);
+});
+
+test('a worker task that is not loaded is reported instead of woken', async () => {
+  const { runtime, fake, watcher } = await setup(2);
+  fake.tasks.delete('task-1');
+  const logs: string[] = [];
+  runtime.log = (message: string) => {
+    logs.push(message);
+  };
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.checkWorker('task-1');
+
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+  assert.equal(runtime.state.findByTaskId('task-1')?.wakes, 0);
+  assert.ok(logs.some((message) => message.includes('is not loaded')));
+});
+
+test('the master unread count is tracked for the panel', async () => {
+  const { runtime, watcher } = withMaster(2);
+
+  await watcher.pollOnce();
+
+  assert.equal(runtime.unreadByTask.get('master-task'), 2);
+});
+
+test('an empty master inbox resets the budget even when the last wake saw zero', async () => {
+  const { runtime, watcher } = withMaster(0);
+  runtime.state.updateMaster({
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 0,
+    wakeBudgetLogged: true,
+    status: 'blocked',
+  });
+
+  await watcher.pollOnce();
+
+  assert.equal(runtime.state.master?.wakes, 0);
+  assert.equal(runtime.state.master?.status, 'idle');
+});
+
+test('an unchanged master backlog warns only once', async () => {
+  const { runtime, watcher } = withMaster(2);
+  runtime.state.updateMaster({
+    wakes: runtime.config.orchestration.maxWakesPerTask,
+    lastWakeUnread: 2,
+    status: 'blocked',
+  });
+  let warnings = 0;
+  const original = runtime.log;
+  runtime.log = (message, type) => {
+    if (type === 'warn' && message.includes('maxWakesPerTask')) {
+      warnings += 1;
+    }
+    original(message, type);
+  };
+
+  await watcher.pollOnce();
+  await watcher.pollOnce();
+
+  assert.equal(warnings, 1);
+});
+
+test('a master is not woken twice for the same backlog', async () => {
+  const { runtime, fake, watcher } = withMaster(2);
+  runtime.state.updateMaster({
+    wakes: 1,
+    lastWakeUnread: 2,
+    lastWakeAt: new Date(0).toISOString(),
+  });
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+});
+
+test('a successful master check clears an old inbox error', async () => {
+  const { runtime, watcher } = withMaster(2);
+  runtime.lastInboxError.set('master-task', 'old failure');
+
+  await watcher.pollOnce();
+
+  assert.equal(runtime.lastInboxError.has('master-task'), false);
+});
+
+test('an empty master inbox does not send a prompt', async () => {
+  const { fake, watcher } = withMaster(0);
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+});

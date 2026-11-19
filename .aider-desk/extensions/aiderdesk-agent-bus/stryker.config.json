@@ -5,9 +5,12 @@
     "configFile": "vitest.config.ts"
   },
   "mutate": ["src/orchestration/wakeup.ts"],
-  "reporters": ["clear-text", "progress", "html"],
+  "reporters": ["clear-text", "progress", "html", "json"],
   "htmlReporter": {
     "fileName": "reports/mutation/wakeup.html"
+  },
+  "jsonReporter": {
+    "fileName": "reports/mutation/wakeup.json"
   },
   "timeoutMS": 15000,
   "concurrency": 2,
