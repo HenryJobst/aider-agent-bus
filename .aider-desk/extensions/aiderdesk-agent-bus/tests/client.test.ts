@@ -15,6 +15,11 @@ if (process.env.FAKE_BUS_LOG) {
 if (args.includes('fail')) {
   process.stderr.write("error: agent 'ghost' is not registered\\n");
   process.exit(1);
+} else if (args.includes('silent-fail')) {
+  process.exit(3);
+} else if (args.includes('die')) {
+  process.stderr.write('killed by signal\\n');
+  process.kill(process.pid, 'SIGTERM');
 } else if (args.includes('inbox-status')) {
   process.stdout.write(JSON.stringify({ unread: 2, claimed: 1, delivered: 5 }));
 } else if (args.includes('register')) {
@@ -35,6 +40,22 @@ function fakeBinary(): { path: string; log: string } {
   chmodSync(path, 0o755);
   return { path, log: join(dir, 'calls.log') };
 }
+
+test('without a binary option the client looks up "agent-bus" on PATH', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'agent-bus-path-'));
+  const path = join(dir, 'agent-bus');
+  writeFileSync(path, FAKE_BUS, 'utf-8');
+  chmodSync(path, 0o755);
+
+  const previousPath = process.env.PATH;
+  process.env.PATH = `${dir}:${previousPath ?? ''}`;
+  try {
+    const client = new BusClient({ scope: { project: 'p', team: 't' } });
+    assert.equal(await client.isAvailable(), true);
+  } finally {
+    process.env.PATH = previousPath;
+  }
+});
 
 function readCalls(log: string): string[][] {
   return readFileSync(log, 'utf-8')
@@ -62,6 +83,9 @@ test('normalizeInboxStatus treats unknown shapes as empty', () => {
   assert.equal(status.unread, 0);
   assert.equal(status.claimed, 0);
   assert.equal(status.delivered, 0);
+
+  assert.equal(normalizeInboxStatus({ unread: 'many' }).unread, 0);
+  assert.equal(normalizeInboxStatus({ unread: '' }).unread, 0);
 });
 
 test('inboxStatus passes the explicit scope and parses JSON', async () => {
@@ -110,6 +134,19 @@ test('send builds a scoped message call', async () => {
   const [call] = readCalls(log);
   assert.deepEqual(call.slice(0, 6), ['send', '--from', 'p-master', '--to', 'p-backend', '--message']);
   assert.ok(call.includes('hello'));
+});
+
+test('send keeps a thread when one is given', async () => {
+  const { path, log } = fakeBinary();
+  process.env.FAKE_BUS_LOG = log;
+
+  const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: path });
+  await client.send('p-master', 'p-backend', 'hello', 'thread-1');
+
+  const [call] = readCalls(log);
+  const threadFlag = call.indexOf('--thread');
+  assert.ok(threadFlag > 0);
+  assert.equal(call[threadFlag + 1], 'thread-1');
 });
 
 test('inject goes through send so the scope is explicit, log carries the scope', async () => {
@@ -188,6 +225,47 @@ test('nodeBinary runs the script through that interpreter', async () => {
   assert.ok(call.includes('--project') && call.includes('p'));
 });
 
+test('a killed call reports stderr and leaves the exit code unset', async () => {
+  const { path, log } = fakeBinary();
+  process.env.FAKE_BUS_LOG = log;
+
+  const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: path });
+
+  await assert.rejects(
+    () => client.run(['die']),
+    (error: unknown) => {
+      assert.ok(error instanceof BusCommandError);
+      assert.equal(error.message, 'killed by signal');
+      assert.equal(error.exitCode, undefined);
+      return true;
+    },
+  );
+});
+
+test('a failing call without stderr rethrows the original error', async () => {
+  const { path, log } = fakeBinary();
+  process.env.FAKE_BUS_LOG = log;
+
+  const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: path });
+
+  await assert.rejects(
+    () => client.run(['silent-fail']),
+    (error: unknown) => {
+      assert.ok(!(error instanceof BusCommandError));
+      assert.equal((error as NodeJS.ErrnoException).code, 3);
+      return true;
+    },
+  );
+});
+
+test('isAvailable reports a working binary', async () => {
+  const { path, log } = fakeBinary();
+  process.env.FAKE_BUS_LOG = log;
+
+  const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: path });
+  assert.equal(await client.isAvailable(), true);
+});
+
 test('a missing binary raises BusUnavailableError with an install hint', async () => {
   const client = new BusClient({ scope: { project: 'p', team: 't' }, binary: '/nonexistent/agent-bus' });
 
@@ -196,9 +274,27 @@ test('a missing binary raises BusUnavailableError with an install hint', async (
     (error: unknown) => {
       assert.ok(error instanceof BusUnavailableError);
       assert.match(error.message, /npm install -g @agent-bus-connect\/cli/);
+      assert.doesNotMatch(error.message, /with node/);
       return true;
     },
   );
 
   assert.equal(await client.isAvailable(), false);
+});
+
+test('the install hint names the interpreter when one is configured', async () => {
+  const client = new BusClient({
+    scope: { project: 'p', team: 't' },
+    binary: '/nonexistent/agent-bus',
+    nodeBinary: '/nonexistent/node',
+  });
+
+  await assert.rejects(
+    () => client.inboxStatus('x'),
+    (error: unknown) => {
+      assert.ok(error instanceof BusUnavailableError);
+      assert.match(error.message, /with node "\/nonexistent\/node"/);
+      return true;
+    },
+  );
 });

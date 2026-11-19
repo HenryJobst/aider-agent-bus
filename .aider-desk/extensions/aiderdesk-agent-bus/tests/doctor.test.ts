@@ -57,6 +57,33 @@ test('a missing CLI is reported as unknown, not as unregistered', async () => {
   assert.equal(await checkRegistration(runtime, 'anything'), null);
 });
 
+test('an unexpected error is unknown, not unregistered, and keeps its message', async () => {
+  const { runtime } = makeRuntime();
+  ensureMaster(runtime, { data: { id: 'master-task' } } as never);
+
+  stubBus(runtime, async () => {
+    throw new Error('database is locked');
+  });
+
+  const [entry] = await collectHealth(runtime);
+
+  assert.equal(entry.registered, null);
+  assert.equal(entry.unread, 0);
+  assert.equal(entry.error, 'database is locked');
+});
+
+test('a thrown non-Error is stringified instead of crashing', async () => {
+  const { runtime } = makeRuntime();
+  ensureMaster(runtime, { data: { id: 'master-task' } } as never);
+
+  stubBus(runtime, () => Promise.reject('plain failure'));
+
+  const [entry] = await collectHealth(runtime);
+
+  assert.equal(entry.registered, null);
+  assert.equal(entry.error, 'plain failure');
+});
+
 test('checkRegistration distinguishes a registered agent from a missing one', async () => {
   const { runtime } = makeRuntime();
   stubBus(runtime, async () => {
