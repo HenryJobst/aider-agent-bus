@@ -8,7 +8,7 @@
 (props) => {
   const { data, ui, icons, executeExtensionAction } = props;
   const { Button } = ui;
-  const { FiRefreshCw } = icons.Fi;
+  const { FiRefreshCw, FiChevronDown, FiChevronRight } = icons.Fi;
   const [note, setNote] = React.useState(null);
   const [expanded, setExpanded] = React.useState(true);
 
@@ -68,8 +68,13 @@
         <Button size="xs" variant="outline" onClick={refresh} title="Read registration state from the bus">
           <FiRefreshCw className="w-3 h-3" />
         </Button>
-        <Button size="xs" variant="outline" onClick={() => setExpanded(!expanded)}>
-          {expanded ? '–' : '+'}
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={() => setExpanded(!expanded)}
+          title={expanded ? 'Collapse' : 'Expand'}
+        >
+          {expanded ? <FiChevronDown className="w-3 h-3" /> : <FiChevronRight className="w-3 h-3" />}
         </Button>
       </div>
 
