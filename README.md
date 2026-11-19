@@ -123,6 +123,95 @@ No worker blocks in `inbox(wait_s: 110)` — that would occupy its agent loop an
 could not be interrupted. Guards: `wakeCooldownMs`, `maxWakesPerTask`, and a
 running task is never woken.
 
+## Use cases
+
+### 1. Sessions only need to coordinate
+
+No board, no task ownership — just messages. This is the lightest setup.
+
+```json
+{ "orchestration": { "trackTasks": false, "peerToPeerEnabled": true } }
+```
+
+1. In the session that should lead: `/agent-bus-init` (master identity, MCP check).
+2. In every other session: `/agent-bus-join` (no arguments).
+3. Agents use `send` for information, `ask` when they need an answer, `reply` on the
+   message id. The extension wakes an idle session when its inbox has unread
+   messages.
+
+Verify: `/agent-bus-doctor` shows all identities `registered`; the sidebar shows
+`unread` counts.
+
+### 2. A work package needs its own worker
+
+Use when work should happen in an isolated copy of the repo.
+
+```json
+{ "isolation": { "mode": "worktree" } }
+```
+
+1. Git repository required — otherwise switch to `shared`.
+2. `/agent-bus-spawn backend developer Implement the users API, acceptance: npm test`
+3. The worker gets its own worktree, the developer profile and the registration
+   prompt. The master keeps the main directory.
+
+Verify: `git worktree list` shows the new worktree, `/agent-bus-team` shows the
+worker with an unread count.
+
+### 3. Bring running sessions into the team
+
+Existing tasks keep their conversation — nothing is restarted.
+
+1. Stop the task you want to adopt (joins do not interrupt on purpose).
+2. `/agent-bus-join` for defaults, or `/agent-bus-join backend reviewer`.
+3. If the session should be isolated: `agent_bus_join_worker` with
+   `switchToWorktree: true` **before** it starts editing.
+
+Verify: `agent_bus_join_worker` output or `/agent-bus-doctor`, then `whois` on the
+bus.
+
+### 4. Tracked work with review
+
+Only worth it when several work items run in parallel and you want a board.
+
+```json
+{ "orchestration": { "trackTasks": true, "requireReview": true } }
+```
+
+1. Master creates a task with `delegate` (holder = worker, title, description,
+   acceptance criteria).
+2. Worker claims it, sets `now --status working`, reports with `reply`.
+3. Reviewer checks and reports; master closes with `done` after the user approves
+   the merge.
+
+Verify: `agent-bus tasks --project <p> --team <t>`, board status in the panel.
+
+### 5. Shrink or end the team
+
+| Goal | Action |
+|---|---|
+| Current run of one agent stops | `/agent-bus-stop <name>` |
+| Participant leaves the team, task keeps running | `/agent-bus-remove <name>` or `×` in the panel |
+| Whole team done | remove/stop all, then close the tasks in AiderDesk |
+
+### 6. No git repository (analysis, docs, someone else's project)
+
+```json
+{ "isolation": { "mode": "shared" } }
+```
+
+Worktree spawns fail with `not a git repository`. In `shared` mode all agents
+share the directory — give them disjoint files or run them one after another.
+
+### 7. An agent sees no bus tools
+
+1. `/agent-bus-doctor` — `mcp:` line must say `configured`.
+2. If `missing`: add the `agent-bus` entry to `.aider-desk/mcp-servers.json`.
+3. Reload extensions, start a fresh prompt, check the log for
+   `Initializing MCP connectors enabledServers=['agent-bus']`.
+4. Still nothing? The run had the tools and the model ignored them — use a
+   stronger model for that role.
+
 ## Configuration
 
 `.aider-desk/agent-bus.json`, all keys optional:

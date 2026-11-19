@@ -80,6 +80,21 @@ Tools (master profile only, others see `agent_bus_get_team`):
 `agent_bus_spawn_worker`, `agent_bus_spawn_team`, `agent_bus_join_worker`,
 `agent_bus_get_team`, `agent_bus_stop_worker`.
 
+### Scenario playbook
+
+The long version with commands lives in [`README.md`](README.md#use-cases); this
+is the short mapping.
+
+| Scenario | Setup | Action |
+|---|---|---|
+| Only coordinate sessions | `orchestration.trackTasks: false` | `init` in the lead task, `/agent-bus-join` in the others, then `send`/`ask`/`reply` |
+| Isolated work package | git repo, `isolation.mode: worktree` | `/agent-bus-spawn <name> <role> <task>` |
+| Adopt running sessions | — | stop the task, `/agent-bus-join`; `switchToWorktree` only before edits |
+| Tracked work with review | `trackTasks: true`, `requireReview: true` | master `delegate`s, worker claims, reviewer reports, master `done` |
+| Shrink the team | — | `/agent-bus-stop` (run) vs `/agent-bus-remove` (membership) |
+| No git repository | `isolation.mode: shared` | disjoint files, or run workers one by one |
+| Agent has no bus tools | — | `/agent-bus-doctor`, check `mcp:`, fresh prompt, stronger model |
+
 ### Environment on this machine
 
 - `agent-bus` CLI 0.43.0 is installed globally via Homebrew's npm.
