@@ -7,6 +7,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type { ExtensionContext } from '@aiderdesk/extensions';
+
 import { DASHBOARD_ID } from '../src/constants.js';
 import { makeHost, spawnBackend, startAgent } from './host.js';
 import type { TestHost } from './host.js';
@@ -177,4 +179,23 @@ test('refresh closes workers whose task no longer exists', async () => {
 
   const view = (await data(h)) as { workers: Array<{ status: string }> };
   assert.equal(view.workers[0].status, 'closed', 'refresh must not resurrect a closed worker');
+});
+
+test('a host without an open project gets no data and a clear action error', async () => {
+  const h = makeHost();
+  const context = {
+    getProjectDir: () => '',
+    getProjectContext: () => {
+      throw new Error('no project');
+    },
+    getTaskContext: () => null,
+    log: () => undefined,
+    triggerUIDataRefresh: () => undefined,
+  } as unknown as ExtensionContext;
+
+  assert.deepEqual(await h.ext.getUIExtensionData(DASHBOARD_ID, context), { available: false });
+  assert.deepEqual(await h.ext.executeUIExtensionAction(DASHBOARD_ID, 'refresh', [], context), {
+    ok: false,
+    error: 'no project',
+  });
 });

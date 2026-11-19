@@ -22,7 +22,7 @@ zwischen zwei Systemen, die es schon gibt.
 
 **v0.2.1 — nutzbar, Härtung läuft.** Für die Abstimmung zwischen Sessions
 funktional vollständig; mit rauen Kanten bei Merges und allem, was unten nicht
-als verifiziert aufgeführt ist. Abgedeckt durch 164 Tests: Tasks mit Profil,
+als verifiziert aufgeführt ist. Abgedeckt durch 178 Tests: Tasks mit Profil,
 Identität und Worktree erzeugen, laufende Tasks adoptieren, Identitätszuordnung,
 Inbox-Polling und Aufwecken, jeder Slash-Command samt Validierung, Task- und
 Worktree-Events, Profil-Overrides, Dashboard-Gating, Config-/State-Persistenz
@@ -334,7 +334,7 @@ npm install
 npm run check   # format:check + lint + typecheck + tests
 ```
 
-164 Tests, ESLint + Prettier eingerichtet:
+178 Tests, ESLint + Prettier eingerichtet:
 
 | Suite | Deckt ab |
 |---|---|

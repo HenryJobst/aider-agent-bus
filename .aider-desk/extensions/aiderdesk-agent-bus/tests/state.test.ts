@@ -81,3 +81,16 @@ test('a corrupted state file is ignored rather than fatal', () => {
   const reloaded = new AgentBusState(projectDir, 'p', 'team');
   assert.deepEqual(reloaded.workers, []);
 });
+
+test('master wake bookkeeping survives a reload', () => {
+  const projectDir = tempProject();
+  const state = new AgentBusState(projectDir, 'p', 'team');
+  state.setMaster({ agentName: 'p-master', taskId: 'master-task' });
+  state.updateMaster({ wakes: 2, lastWakeUnread: 3, status: 'working' });
+
+  const reloaded = new AgentBusState(projectDir, 'p', 'team');
+
+  assert.equal(reloaded.master?.wakes, 2);
+  assert.equal(reloaded.master?.lastWakeUnread, 3);
+  assert.equal(reloaded.master?.status, 'working');
+});

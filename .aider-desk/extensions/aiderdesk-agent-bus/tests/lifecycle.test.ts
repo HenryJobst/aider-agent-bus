@@ -4,6 +4,8 @@
  */
 
 import assert from 'node:assert/strict';
+import { readFileSync, utimesSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import type { AgentProfile } from '@aiderdesk/extensions';
@@ -295,4 +297,24 @@ test('a project start with no loaded tasks leaves the workers alone', async () =
     'starting',
     'an empty task list means the project is still loading, not that every task is gone',
   );
+});
+
+test('a config edit applies on the next UI call without an extension reload', async () => {
+  const h = makeHost();
+  const before = (await h.ext.getUIExtensionData('agent-bus-dashboard', h.context)) as {
+    settings: { trackTasks: boolean };
+  };
+  assert.equal(before.settings.trackTasks, true);
+
+  const path = join(h.projectDir, '.aider-desk', 'agent-bus.json');
+  const config = JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>;
+  config.orchestration = { ...(config.orchestration as Record<string, unknown>), trackTasks: false };
+  writeFileSync(path, JSON.stringify(config), 'utf-8');
+  const future = new Date(Date.now() + 5_000);
+  utimesSync(path, future, future);
+
+  const after = (await h.ext.getUIExtensionData('agent-bus-dashboard', h.context)) as {
+    settings: { trackTasks: boolean };
+  };
+  assert.equal(after.settings.trackTasks, false);
 });

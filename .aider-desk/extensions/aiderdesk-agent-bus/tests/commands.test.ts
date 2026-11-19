@@ -4,6 +4,8 @@
  */
 
 import assert from 'node:assert/strict';
+import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import type { CommandDefinition } from '@aiderdesk/extensions';
@@ -276,4 +278,49 @@ test('team reconciles records whose task no longer exists', async () => {
   await run(h, 'agent-bus-team');
 
   assert.match(output(h), /test-project-backend {2}developer {2}closed/);
+});
+
+test('init creates the config file when the project has none', async () => {
+  const h = makeHost();
+  unlinkSync(join(h.projectDir, '.aider-desk', 'agent-bus.json'));
+  h.setCurrentTask(h.createTask('master-task', 'pm'));
+
+  await run(h, 'agent-bus-init');
+
+  assert.ok(existsSync(join(h.projectDir, '.aider-desk', 'agent-bus.json')));
+  assert.match(output(h), /^config: /m);
+});
+
+test('init reports a broken config instead of hiding it', async () => {
+  const h = makeHost();
+  writeFileSync(join(h.projectDir, '.aider-desk', 'agent-bus.json'), '{oops', 'utf-8');
+
+  await run(h, 'agent-bus-init');
+
+  assert.match(output(h), /\(error: Cannot parse/);
+});
+
+test('doctor explains an unregistered worker', async () => {
+  const h = makeHost({ inboxMissing: true });
+  await spawnBackend(h);
+
+  await run(h, 'agent-bus-doctor');
+
+  assert.match(output(h), /test-project-backend {2}developer {2}NOT registered/);
+  assert.match(output(h), /needs a fresh prompt/);
+});
+
+test('team reports workers parked at the wake budget', async () => {
+  const h = makeHost();
+  await spawnBackend(h);
+  const internals = h.ext as unknown as {
+    getRuntime(context: unknown): {
+      state: { updateWorker(taskId: string, patch: Record<string, unknown>): void };
+    };
+  };
+  internals.getRuntime(h.context).state.updateWorker('task-1', { wakes: 3 });
+
+  await run(h, 'agent-bus-team');
+
+  assert.match(output(h), /1 worker\(s\) parked at maxWakesPerTask \(3\): test-project-backend/);
 });

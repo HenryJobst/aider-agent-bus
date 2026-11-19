@@ -537,3 +537,23 @@ test('parkedWorkers lists workers that used up their wake budget', async () => {
     'closed workers are not reported',
   );
 });
+
+test('stopWorker marks a worker closed when its task is not loaded', async () => {
+  const { runtime, fake } = makeRuntime();
+  await spawnWorkers(runtime, [{ name: 'backend', role: 'developer', task: 'A' }]);
+  fake.tasks.delete('task-1');
+
+  const result = stopWorker(runtime, 'test-project-backend');
+
+  assert.equal(result.ok, false);
+  assert.match(result.error ?? '', /not loaded/);
+  assert.equal(runtime.state.findByTaskId('task-1')?.status, 'closed');
+});
+
+test('hybrid isolation asks for a worktree like worktree mode', async () => {
+  const { runtime, fake } = makeRuntime({ isolation: { mode: 'hybrid' } });
+
+  await spawnWorkers(runtime, [{ name: 'backend', role: 'developer', task: 'A' }]);
+
+  assert.equal(fake.calls.createTask[0].workingMode, 'worktree');
+});

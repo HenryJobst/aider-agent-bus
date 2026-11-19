@@ -120,7 +120,7 @@
       {expanded ? (
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className={'h-1.5 w-1.5 shrink-0 rounded-full ' + statusColor(data.master?.status ?? 'idle')} />
             <span
               className={
                 'truncate ' + (activateTask ? 'cursor-pointer text-text-primary hover:underline' : 'text-text-primary')

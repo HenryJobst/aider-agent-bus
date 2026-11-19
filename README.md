@@ -22,7 +22,7 @@ systems that already exist.
 
 **v0.2.1 — usable, hardening in progress.** Feature-complete for coordination
 between sessions; expect rough edges around merges and anything not listed as
-verified below. Covered by 164 tests: spawning tasks with profile,
+verified below. Covered by 178 tests: spawning tasks with profile,
 identity and worktree, adopting running tasks, identity mapping, inbox polling
 and wake-up, every slash command and its validation, task/worktree events,
 profile overrides, dashboard gating, config/state persistence, and a real-CLI
@@ -326,7 +326,7 @@ npm run sync    # copy into ~/.aider-desk/extensions (reloads every extension!)
 AiderDesk reloads **all** extensions whenever a file under
 `~/.aider-desk/extensions/` changes. Sync deliberately, not on every save.
 
-164 tests, ESLint + Prettier configured:
+178 tests, ESLint + Prettier configured:
 
 | Suite | Covers |
 |---|---|

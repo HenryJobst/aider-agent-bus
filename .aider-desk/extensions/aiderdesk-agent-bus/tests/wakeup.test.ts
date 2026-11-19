@@ -380,3 +380,51 @@ test('the master is woken before any worker', async () => {
   assert.equal(fake.calls.prompts.length, promptsBefore + 1);
   assert.equal(fake.calls.prompts.at(-1)?.id, 'master-task', 'coordination wins over worker wakes');
 });
+
+test('an unregistered master is a state, not an inbox error', async () => {
+  const { runtime, fake, watcher } = withMaster(0);
+  runtime.bus = {
+    inboxStatus: async () => {
+      throw new Error("agent 'x' is not registered");
+    },
+  } as unknown as BusClient;
+  const promptsBefore = fake.calls.prompts.length;
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, promptsBefore);
+  assert.equal(runtime.lastInboxError.has('master-task'), false);
+});
+
+test('a missing CLI is reported for the master too', async () => {
+  const { runtime, fake, watcher } = withMaster(0);
+  runtime.bus = {
+    inboxStatus: async () => {
+      throw new BusUnavailableError('agent-bus not found');
+    },
+  } as unknown as BusClient;
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, 0);
+  assert.match(runtime.lastInboxError.get('master-task') ?? '', /not found/);
+});
+
+test('a muted master is not woken', async () => {
+  const { runtime, fake, watcher } = withMaster(2);
+  runtime.state.updateMaster({ muted: true });
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, 0);
+});
+
+test('a master task that is not loaded is not woken', async () => {
+  const { runtime, fake, watcher } = withMaster(2);
+  fake.tasks.delete('master-task');
+
+  await watcher.pollOnce();
+
+  assert.equal(fake.calls.prompts.length, 0);
+  assert.equal(runtime.state.master?.wakes ?? 0, 0);
+});

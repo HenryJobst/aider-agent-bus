@@ -122,3 +122,16 @@ test('a slow bus does not stack overlapping polls', async () => {
 
   assert.equal(inboxCalls(host), 1, 'the second tick returns while the first is still running');
 });
+
+test('a slow poll is reported once it exceeds the budget', async () => {
+  const host = makeHost({ delayMs: 1600 });
+  await runningWorker(host);
+  await host.ext.onProjectStarted({ baseDir: host.projectDir } as never, host.context);
+
+  await poll(host.ext);
+
+  assert.ok(
+    host.logs.some((entry) => entry.message.includes('took')),
+    'slow polls must be visible in the log',
+  );
+});

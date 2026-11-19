@@ -295,7 +295,7 @@ types must be `import type`, unused args must be prefixed with `_`.
 ## Tests
 
 ```bash
-npm test          # 164 tests, node:test + tsx
+npm test          # 178 tests, node:test + tsx
 npm run typecheck # tsc --noEmit
 node "/Applications/aider-desk.app/Contents/Resources/skills/extension-creator/assets/scripts/validate-extension-ui.mjs" \
   src/ui/Dashboard.jsx   # ships with AiderDesk, not part of this repo
@@ -326,7 +326,12 @@ What is covered without AiderDesk:
   ignored so a loading project cannot close every worker), worktree created and
   merged, profile overrides, learned provider defaults, and the poll timer
   surviving an extension reload
-- panel gating: no component without a team, one docked component with one
+- panel gating: no component without a team, one docked component with one;
+  data and actions of a host without an open project degrade cleanly
+- edge cases: config hot reload, `init` without/with a broken config, a
+  `NOT registered` doctor hint, an unloaded worker task, hybrid isolation, the
+  parked-worker note, and every master error path (unregistered, CLI missing,
+  muted, task not loaded)
 
 `tests/host.ts` is the shared fake host for those last three groups: it
 instantiates the real extension and substitutes only `ProjectContext`,
