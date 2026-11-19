@@ -28,7 +28,7 @@ import type {
 import { createTeamCommands } from './src/commands.js';
 import { configMtime, configPath, setConfigValue } from './src/core/config.js';
 import { ProjectRuntime } from './src/core/runtime.js';
-import { removeWorker, stopWorker } from './src/orchestration/team.js';
+import { removeWorker, stopAll, stopWorker } from './src/orchestration/team.js';
 import { checkRegistration, collectHealth } from './src/orchestration/doctor.js';
 import { InboxWatcher } from './src/orchestration/wakeup.js';
 import { ROLE_PROFILE_IDS, buildProfiles } from './src/profiles.js';
@@ -365,6 +365,11 @@ export default class AgentBusExtension implements Extension {
         runtime.reload();
         context.triggerUIDataRefresh(DASHBOARD_ID);
         return result;
+      }
+      case 'stop-all': {
+        const result = stopAll(runtime);
+        context.triggerUIDataRefresh(DASHBOARD_ID);
+        return { ok: true, ...result };
       }
       case 'remove-worker': {
         const target = String(args[0] ?? '');

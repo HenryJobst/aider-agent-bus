@@ -108,9 +108,10 @@ agent-bus MCP tools (`register`, `send`, `ask`, `reply`, `delegate`, `now`,
 
 The panel at the bottom of the tasks sidebar mirrors the three settings you flip
 per project — board tasks vs. message-only, peer-to-peer on/off, and worktree vs.
-shared isolation (the last one only while no worker is running). Everything else
-goes through `/agent-bus-config <key> <value>`, which validates the key, writes
-the project file and applies it immediately.
+shared isolation (the last one only while no worker is running). The header has
+`stop all`, which interrupts every running agent including the master, after a
+confirmation. Everything else goes through `/agent-bus-config <key> <value>`,
+which validates the key, writes the project file and applies it immediately.
 
 Config lives in the project: `.aider-desk/agent-bus.json`. Identity mapping and
 wake counters live next to it in `.aider-desk/agent-bus-state.json` — a join

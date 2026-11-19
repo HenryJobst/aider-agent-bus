@@ -116,7 +116,9 @@ Dashboard (`tasks-sidebar-bottom`): a compact strip at the bottom of the tasks
 sidebar with status dots, unread badges, per-worker `stop` and `×` (remove), collapse
 and a refresh action that reports how many identities are registered on the bus.
 The expanded panel also toggles board vs. message-only coordination, peer-to-peer
-messages and the isolation mode (the last one only while no worker runs). It is only registered for projects that already have a team
+messages and the isolation mode (the last one only while no worker runs). The
+header holds `stop all`, which interrupts every running agent including the
+master, after a confirmation. It is only registered for projects that already have a team
 (master or workers); an uninitialised project does not get a floating panel.
 It is docked, not a floating window, so it does not cover the chat.
 

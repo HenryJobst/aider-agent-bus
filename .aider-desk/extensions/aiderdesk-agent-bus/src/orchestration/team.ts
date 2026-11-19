@@ -454,6 +454,50 @@ export async function removeWorker(
   return { ok: true, agentName: worker.agentName };
 }
 
+/**
+ * Interrupts every agent that is currently running, master included.
+ * Registrations, board tasks and the join table stay untouched.
+ */
+export function stopAll(runtime: ProjectRuntime): { stopped: string[]; skipped: string[] } {
+  const targets = [
+    ...(runtime.state.master
+      ? [{ agentName: runtime.state.master.agentName, taskId: runtime.state.master.taskId, role: 'master' }]
+      : []),
+    ...runtime.state.workers.map((worker) => ({
+      agentName: worker.agentName,
+      taskId: worker.taskId,
+      role: worker.role,
+    })),
+  ];
+
+  const stopped: string[] = [];
+  const skipped: string[] = [];
+
+  for (const target of targets) {
+    if (!runtime.runningTasks.has(target.taskId)) {
+      skipped.push(target.agentName);
+      continue;
+    }
+
+    const task = runtime.projectContext.getTask(target.taskId);
+    if (!task) {
+      skipped.push(target.agentName);
+      continue;
+    }
+
+    void task.interruptResponse();
+    if (target.role !== 'master') {
+      runtime.state.updateWorker(target.taskId, { status: 'idle' });
+    }
+    stopped.push(target.agentName);
+  }
+
+  if (stopped.length > 0) {
+    runtime.log(`stopped ${stopped.join(', ')}`, 'info');
+  }
+  return { stopped, skipped };
+}
+
 export function describeWorkers(
   runtime: ProjectRuntime,
 ): Array<Pick<WorkerRecord, 'agentName' | 'role' | 'status' | 'worktree' | 'taskId'>> {

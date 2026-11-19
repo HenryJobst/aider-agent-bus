@@ -15,6 +15,7 @@ import {
   registerMaster,
   removeWorker,
   spawnWorkers,
+  stopAll,
   stopWorker,
 } from '../src/orchestration/team.js';
 import { makeRuntime, makeTask } from './fakes.js';
@@ -371,6 +372,44 @@ test('removing an unknown worker reports instead of guessing', async () => {
 
   assert.equal(result.ok, false);
   assert.match(result.error ?? '', /unknown worker/);
+});
+
+test('stopAll interrupts running agents, master included, and skips idle ones', () => {
+  const { runtime, fake } = makeRuntime();
+
+  const masterTask = makeTask('master-task', runtime.projectDir, fake.calls);
+  fake.tasks.set('master-task', masterTask);
+  ensureMaster(runtime, masterTask);
+
+  runtime.state.upsertWorker({
+    agentName: 'p-busy',
+    taskId: 't-busy',
+    role: 'developer',
+    name: 'busy',
+    capabilities: [],
+    worktree: null,
+    status: 'working',
+  });
+  runtime.state.upsertWorker({
+    agentName: 'p-idle',
+    taskId: 't-idle',
+    role: 'developer',
+    name: 'idle',
+    capabilities: [],
+    worktree: null,
+    status: 'idle',
+  });
+  fake.tasks.set('t-busy', makeTask('t-busy', runtime.projectDir, fake.calls));
+
+  runtime.runningTasks.add('master-task');
+  runtime.runningTasks.add('t-busy');
+
+  const result = stopAll(runtime);
+
+  assert.deepEqual(result.stopped.sort(), ['p-busy', 'test-project-master'].sort());
+  assert.deepEqual(result.skipped, ['p-idle']);
+  assert.deepEqual(fake.calls.interrupts.sort(), ['master-task', 't-busy'].sort());
+  assert.equal(runtime.state.findByTaskId('t-busy')?.status, 'idle');
 });
 
 test('stopWorker interrupts the mapped task and keeps the record', async () => {

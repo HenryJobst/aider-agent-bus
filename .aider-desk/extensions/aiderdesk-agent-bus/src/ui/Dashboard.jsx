@@ -44,6 +44,15 @@
     setNote(result && result.ok ? `${result.registered}/${result.total} registered` : 'refresh failed');
   };
 
+  const stopAll = async () => {
+    if (!window.confirm('Stop all running agents (workers and master)?')) {
+      return;
+    }
+    setNote('stopping all…');
+    const result = await executeExtensionAction('stop-all');
+    setNote(result && result.ok ? `stopped ${result.stopped.length} agent(s)` : 'stop all failed');
+  };
+
   const removeWorker = async (agentName) => {
     if (!window.confirm(`Remove ${agentName} from the team? The task keeps running.`)) {
       return;
@@ -76,6 +85,15 @@
         </span>
         {unread > 0 ? <span className="rounded bg-primary/20 px-1 text-primary">{unread}</span> : null}
         <span className="flex-1" />
+        <Button
+          size="xs"
+          variant="outline"
+          color="danger"
+          onClick={stopAll}
+          title="Interrupt every running agent, master included"
+        >
+          stop all
+        </Button>
         <Button size="xs" variant="outline" onClick={refresh} title="Read registration state from the bus">
           <FiRefreshCw className="w-3 h-3" />
         </Button>
